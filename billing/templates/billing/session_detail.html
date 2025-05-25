@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3">Billing Session: {{ session.name }}</h1>
+      <a href="{% url 'billing:session_list' %}" class="btn btn-secondary">Back to Sessions</a>
+    </div>
+
+    <!-- Barcode Scanner Form -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Scan Barcode</h5>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'billing:add_item_by_barcode' session.id %}" class="row g-3 align-items-end">
+          {% csrf_token %}
+          <div class="col-md-8">
+            <label for="barcode" class="form-label">Barcode</label>
+            <input type="text" class="form-control" id="barcode" name="barcode" required autofocus />
+          </div>
+          <div class="col-md-4">
+            <button type="submit" class="btn btn-success w-100">Add Item</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Session Items Table -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Session Items</h5>
+      </div>
+      <div class="card-body">
+        {% if items %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Barcode</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                  <th>Total</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in items %}
+                  <tr>
+                    <td>{{ item.inventory.part_name }}</td>
+                    <td>{{ item.inventory.barcode }}</td>
+                    <td>
+                      <input type="number" class="form-control form-control-sm quantity-input" value="{{ item.quantity }}" min="1" data-item-id="{{ item.id }}" style="width: 80px;" />
+                    </td>
+                    <td>
+                      <input type="number" class="form-control form-control-sm price-input" value="{{ item.price }}" min="0" step="0.01" data-item-id="{{ item.id }}" style="width: 100px;" />
+                    </td>
+                    <td class="item-total">{{ item.amount|floatformat:2 }}</td>
+                    <td>
+                      <button type="button" class="btn btn-danger btn-sm delete-item" data-item-id="{{ item.id }}"><i class="fas fa-trash"></i></button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p>No items in this session yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Auto-focus barcode input and handle form submission
+    document.addEventListener('DOMContentLoaded', function () {
+      const barcodeInput = document.getElementById('barcode')
+      const form = barcodeInput.closest('form')
+    
+      // Focus barcode input on page load
+      barcodeInput.focus()
+    
+      // Handle form submission
+      form.addEventListener('submit', function (e) {
+        e.preventDefault()
+        if (barcodeInput.value.trim()) {
+          this.submit()
+          barcodeInput.value = ''
+          barcodeInput.focus()
+        }
+      })
+    
+      // Debounce function to limit API calls
+      function debounce(func, wait) {
+        let timeout
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout)
+            func(...args)
+          }
+          clearTimeout(timeout)
+          timeout = setTimeout(later, wait)
+        }
+      }
+    
+      // Update item via API
+      const updateItem = debounce(function (itemId, quantity, price) {
+        fetch(`/billing/api/items/${itemId}/update/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: JSON.stringify({
+            quantity: quantity,
+            price: price
+          })
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === 'success') {
+              const row = document.querySelector(`[data-item-id="${itemId}"]`).closest('tr')
+              row.querySelector('.item-total').textContent = data.item.amount.toFixed(2)
+              // Refocus on barcode scanner after successful update
+              barcodeInput.focus()
+            } else {
+              console.error('Error updating item:', data.message)
+            }
+          })
+          .catch((error) => console.error('Error:', error))
+      }, 500) // Wait 500ms after last change before making API call
+    
+      // Add event listeners for quantity and price inputs
+      document.querySelectorAll('.quantity-input, .price-input').forEach((input) => {
+        input.addEventListener('input', function () {
+          const itemId = this.dataset.itemId
+          const row = this.closest('tr')
+          const quantity = row.querySelector('.quantity-input').value
+          const price = row.querySelector('.price-input').value
+    
+          // Update total immediately for better UX
+          const total = (parseFloat(quantity) || 0) * (parseFloat(price) || 0)
+          row.querySelector('.item-total').textContent = total.toFixed(2)
+    
+          // Send update to server
+          updateItem(itemId, quantity, price)
+        })
+      })
+    
+      // Handle delete item
+      document.querySelectorAll('.delete-item').forEach((button) => {
+        button.addEventListener('click', function () {
+          const itemId = this.dataset.itemId
+          if (confirm('Are you sure you want to remove this item?')) {
+            fetch(`/billing/sessions/${itemId}/delete-item/`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+              }
+            }).then((response) => {
+              if (response.ok) {
+                this.closest('tr').remove()
+              }
+            })
+          }
+        })
+      })
+    })
+  </script>
+{% endblock %}

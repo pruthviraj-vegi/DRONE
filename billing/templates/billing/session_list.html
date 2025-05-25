@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3">Billing Sessions</h1>
+      <a href="{% url 'billing:session_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> New Session</a>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        {% if sessions %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Created At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for session in sessions %}
+                  <tr>
+                    <td>{{ session.name }}</td>
+                    <td>{{ session.created_at }}</td>
+                    <td>
+                      <a href="{% url 'billing:session_detail' session.id %}" class="btn btn-sm btn-outline-primary">Open</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p>No active billing sessions found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
