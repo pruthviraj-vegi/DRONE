@@ -1,0 +1,11 @@
+   python manage.py shell
+
+
+
+    from users.models import CustomUser
+   user = CustomUser.objects.create_superuser(
+       phone="7022229993",
+       password="1234",
+       full_name="Chanti",
+       role="admin"
+   )

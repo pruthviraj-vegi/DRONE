@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3">Update Stock: {{ inventory }}</h1>
+      <a href="{% url 'inventory:stock_transaction_list' inventory.id %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Transactions</a>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <!-- Current Stock Info -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Current Stock Information</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p>
+                  <strong>Current Quantity:</strong>
+                </p>
+                <h3 class="text-{% if inventory.quantity <= 0 %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    danger
+
+
+
+
+
+
+                  {% elif inventory.quantity <= inventory.minimum_quantity %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    warning
+
+
+
+
+
+
+                  {% else %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    success
+
+
+
+
+
+
+                  {% endif %}">
+                  {{ inventory.quantity }}
+                </h3>
+              </div>
+              <div class="col-md-6">
+                <p>
+                  <strong>Minimum Quantity:</strong>
+                </p>
+                <h4>{{ inventory.minimum_quantity }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Update Stock Form -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Update Stock</h5>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+              {% if form.errors %}
+                <div class="alert alert-danger">
+                  <h5 class="alert-heading">Please correct the following errors:</h5>
+                  {{ form.non_field_errors }}
+                </div>
+              {% endif %}
+              {{ form.as_p }}
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Update Stock</button>
+                <a href="{% url 'inventory:stock_transaction_list' inventory.id %}" class="btn btn-secondary"><i class="fas fa-times"></i> Cancel</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <!-- Quick Guide -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Transaction Types Guide</h5>
+          </div>
+          <div class="card-body">
+            <div class="list-group">
+              <div class="list-group-item">
+                <h6 class="mb-1">Purchase</h6>
+                <p class="mb-1">Use for new stock received from suppliers. Always use positive quantity.</p>
+              </div>
+              <div class="list-group-item">
+                <h6 class="mb-1">Adjustment</h6>
+                <p class="mb-1">Use for stock corrections or physical count adjustments.</p>
+              </div>
+              <div class="list-group-item">
+                <h6 class="mb-1">Return</h6>
+                <p class="mb-1">Use for returned items from customers. Use positive quantity.</p>
+              </div>
+              <div class="list-group-item">
+                <h6 class="mb-1">Damage/Loss</h6>
+                <p class="mb-1">Use for damaged or lost items. Always use negative quantity.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block extra_js %}
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const transactionType = document.getElementById('transaction_type');
+    const quantityChange = document.getElementById('quantity_change');
+    
+    transactionType.addEventListener('change', function() {
+        const type = this.value;
+        // Set default quantity change based on transaction type
+        if (type === 'purchase' || type === 'return') {
+            quantityChange.min = 1;
+            quantityChange.placeholder = 'Enter positive quantity';
+        } else if (type === 'sale' || type === 'damage') {
+            quantityChange.max = 0;
+            quantityChange.placeholder = 'Enter negative quantity';
+        } else {
+            quantityChange.min = -{{ inventory.quantity }};
+            quantityChange.placeholder = 'Enter quantity change';
+        }
+    });
+});
+</script>
+  {% endblock %}
+{% endblock %}

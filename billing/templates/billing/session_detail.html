@@ -70,6 +70,10 @@
         {% endif %}
       </div>
     </div>
+
+    <div class="mt-4 text-end">
+      <a href="{% url 'invoice:select_details' session.id %}" class="btn btn-primary">Submit & Create Invoice</a>
+    </div>
   </div>
 
   <script>

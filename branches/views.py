@@ -4,6 +4,9 @@ from django.core.paginator import Paginator
 from .models import Branch
 from Drone.decorators import admin_required
 from django.urls import reverse_lazy
+from .forms import BranchForm
+from django.views.generic import CreateView, UpdateView
+from django.utils.decorators import method_decorator
 
 
 @admin_required
@@ -29,56 +32,38 @@ def branch_list(request):
     return render(request, "branches/branch_list.html", context)
 
 
-@admin_required
-def branch_create(request):
-    if request.method == "POST":
-        name = request.POST.get("name")
-        address = request.POST.get("address")
-        phone = request.POST.get("phone")
-        email = request.POST.get("email")
+@method_decorator(admin_required, name="dispatch")
+class CreateBranch(CreateView):
+    model = Branch
+    form_class = BranchForm
+    template_name = "branches/branch_form.html"
+    success_url = reverse_lazy("branches:branch_list")
 
-        if name and address and phone and email:
-            branch = Branch.objects.create(
-                name=name, address=address, phone=phone, email=email
-            )
-            messages.success(
-                request, f'Branch "{branch.name}" has been created successfully.'
-            )
-            return redirect("branches:branch_list")
-        else:
-            messages.error(request, "Please fill in all required fields.")
+    def form_valid(self, form):
+        messages.success(self.request, "Branch has been created successfully.")
+        return super().form_valid(form)
 
-    return render(request, "branches/branch_form.html", {"title": "Create New Branch"})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Create New Branch"
+        return context
 
 
-@admin_required
-def branch_edit(request, pk):
-    branch = get_object_or_404(Branch, pk=pk)
+@method_decorator(admin_required, name="dispatch")
+class EditBranch(UpdateView):
+    model = Branch
+    form_class = BranchForm
+    template_name = "branches/branch_form.html"
+    success_url = reverse_lazy("branches:branch_list")
 
-    if request.method == "POST":
-        name = request.POST.get("name")
-        address = request.POST.get("address")
-        phone = request.POST.get("phone")
-        email = request.POST.get("email")
+    def form_valid(self, form):
+        messages.success(self.request, "Branch has been updated successfully.")
+        return super().form_valid(form)
 
-        if name and address and phone and email:
-            branch.name = name
-            branch.address = address
-            branch.phone = phone
-            branch.email = email
-            branch.save()
-            messages.success(
-                request, f'Branch "{branch.name}" has been updated successfully.'
-            )
-            return redirect("branches:branch_list")
-        else:
-            messages.error(request, "Please fill in all required fields.")
-
-    return render(
-        request,
-        "branches/branch_form.html",
-        {"branch": branch, "title": f"Edit Branch: {branch.name}"},
-    )
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = f"Edit Branch: {self.object.name}"
+        return context
 
 
 @admin_required

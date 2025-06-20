@@ -4,6 +4,7 @@ from .models import Branch
 
 @admin.register(Branch)
 class BranchAdmin(admin.ModelAdmin):
-    list_display = ("name", "type", "parent", "is_active")
+    list_display = ("name", "type", "parent", "is_active", "created_at", "updated_at")
+    search_fields = ("name", "address", "phone", "email")
     list_filter = ("type", "is_active")
-    search_fields = ("name",)
+    autocomplete_fields = ("parent",)

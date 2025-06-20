@@ -5,8 +5,11 @@ from branches.models import Branch
 
 
 class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(
-        required=True, widget=forms.EmailInput(attrs={"class": "form-control"})
+    phone = forms.CharField(
+        required=True,
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "Phone Number"}
+        ),
     )
     full_name = forms.CharField(
         required=True, widget=forms.TextInput(attrs={"class": "form-control"})
@@ -19,14 +22,18 @@ class CustomUserCreationForm(UserCreationForm):
         queryset=Branch.objects.all(),
         widget=forms.Select(attrs={"class": "form-select"}),
     )
+    email = forms.EmailField(
+        required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
+    )
 
     class Meta:
         model = CustomUser
         fields = [
-            "email",
+            "phone",
             "full_name",
             "role",
             "branch",
+            "email",
             "password1",
             "password2",
         ]
@@ -51,11 +58,11 @@ class CustomUserCreationForm(UserCreationForm):
             "Enter the same password as before, for verification."
         )
 
-    def clean_email(self):
-        email = self.cleaned_data.get("email")
-        if CustomUser.objects.filter(email=email).exists():
-            raise forms.ValidationError("A user with this email already exists.")
-        return email
+    def clean_phone(self):
+        phone = self.cleaned_data.get("phone")
+        if CustomUser.objects.filter(phone=phone).exists():
+            raise forms.ValidationError("A user with this phone number already exists.")
+        return phone
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -66,15 +73,16 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class CustomLoginForm(AuthenticationForm):
-    username = forms.EmailField(
-        widget=forms.EmailInput(
+    username = forms.CharField(
+        widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "Email Address",
-                "autocomplete": "email",
+                "placeholder": "Phone Number",
+                "autocomplete": "username",
             }
         )
     )
+
     password = forms.CharField(
         widget=forms.PasswordInput(
             attrs={
@@ -86,6 +94,51 @@ class CustomLoginForm(AuthenticationForm):
     )
 
     error_messages = {
-        "invalid_login": "Please enter a correct email and password.",
+        "invalid_login": "Please enter a correct phone number and password.",
         "inactive": "This account is inactive.",
     }
+
+
+class ResetPasswordForm(forms.Form):
+    new_password1 = forms.CharField(
+        label="New Password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        strip=False,
+    )
+    new_password2 = forms.CharField(
+        label="Confirm New Password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        strip=False,
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get("new_password1")
+        password2 = cleaned_data.get("new_password2")
+        if password1 and password2 and password1 != password2:
+            self.add_error("new_password2", "The two password fields didn't match.")
+        return cleaned_data
+
+
+class CustomUserChangeForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ["phone", "full_name", "role", "branch", "email"]
+        widgets = {
+            "phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Phone Number"}
+            ),
+            "full_name": forms.TextInput(attrs={"class": "form-control"}),
+            "role": forms.Select(attrs={"class": "form-select"}),
+            "branch": forms.Select(attrs={"class": "form-select"}),
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
+        }
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get("phone")
+        qs = CustomUser.objects.filter(phone=phone)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("A user with this phone number already exists.")
+        return phone

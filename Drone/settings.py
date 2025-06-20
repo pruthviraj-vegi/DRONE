@@ -29,16 +29,14 @@ ALLOWED_HOSTS = ["*"]
 
 AUTH_USER_MODEL = "users.CustomUser"
 
-LOGIN_URL = "users:login"
-LOGIN_REDIRECT_URL = "users:dashboard"
-LOGOUT_REDIRECT_URL = "users:login"
+LOGIN_URL = "base:login"
+LOGIN_REDIRECT_URL = "dashboard:dashboard"
+LOGOUT_REDIRECT_URL = "base:login"
 
 # Make login required by default for all views
 LOGIN_REQUIRED_IGNORE_PATHS = [
-    r"^/admin/login/$",  # Admin login
     r"^/static/",  # Static files
     r"^/media/",  # Media files
-    r"^/accounts/login/$",  # Default login URL
 ]
 
 
@@ -56,7 +54,11 @@ INSTALLED_APPS = [
     "suppliers",
     "customers",
     "inventory",
+    "inventoryManage",
     "billing",
+    "invoice",
+    "dashboard",
+    "base",
     "widget_tweaks",
 ]
 
@@ -128,17 +130,21 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Calcutta"
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -147,7 +153,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Login Required Middleware Settings
 LOGIN_REQUIRED_IGNORE_VIEW_NAMES = [
-    "users:login",
+    "base:login",
     "users:password_reset",
     "users:password_reset_done",
     "users:password_reset_confirm",
@@ -155,8 +161,46 @@ LOGIN_REQUIRED_IGNORE_VIEW_NAMES = [
 ]
 
 LOGIN_REQUIRED_IGNORE_PATHS = [
-    r"^/admin/login/$",
     r"^/static/",
     r"^/media/",
-    r"^/accounts/login/$",
 ]
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} : {levelname} - {module}.py : (line {lineno}) in {funcName} : {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            "formatter": "simple",
+        },
+        "info_file": {
+            "class": "logging.FileHandler",
+            "filename": "logs/info.log",
+            "level": "INFO",
+            "formatter": "verbose",
+        },
+        "error_file": {
+            "class": "logging.FileHandler",
+            "filename": "logs/error.log",
+            "level": "ERROR",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "": {
+            "level": "DEBUG",
+            "handlers": ["console", "info_file", "error_file"],
+        }
+    },
+}

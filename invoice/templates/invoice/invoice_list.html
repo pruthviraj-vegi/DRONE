@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3">All Invoices</h1>
+      <a href="{% url 'billing:session_list' %}" class="btn btn-secondary">Back to Sessions</a>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        {% if invoices %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Invoice Type</th>
+                  <th>Date</th>
+                  <th>Total Amount</th>
+                  <th>Sale User</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for invoice in invoices %}
+                  <tr>
+                    <td>{{ invoice.id }}</td>
+                    <td>{{ invoice.customer }}</td>
+                    <td>{{ invoice.get_invoice_type_display }}</td>
+                    <td>{{ invoice.updated_at|date:'d/m/Y' }}</td>
+                    <td>{{ invoice.total_amount|floatformat:2 }}</td>
+                    <td>{{ invoice.sale_user.full_name }}</td>
+                    <td>
+                      <a href="{% url 'invoice:invoice_detail' invoice.id %}" class="btn btn-sm btn-primary">View</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p>No invoices found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

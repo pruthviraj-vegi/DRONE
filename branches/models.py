@@ -9,6 +9,7 @@ class Branch(models.Model):
     )
 
     name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=10, unique=True)
     type = models.CharField(max_length=10, choices=BRANCH_TYPE_CHOICES)
     parent = models.ForeignKey(
         "self",
@@ -18,8 +19,8 @@ class Branch(models.Model):
         related_name="sub_branches",
     )
     address = models.TextField(blank=True, null=True)
-    phone = models.CharField(max_length=20)
-    email = models.EmailField(null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    email = models.EmailField(unique=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)

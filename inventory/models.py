@@ -2,6 +2,8 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 from suppliers.models import Supplier
+from branches.models import Branch
+from django import forms
 
 
 class Inventory(models.Model):
@@ -12,17 +14,18 @@ class Inventory(models.Model):
     purchased_price = models.DecimalField(max_digits=10, decimal_places=2)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True)
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.SET_NULL, null=True, blank=True
+    )
     quantity = models.IntegerField(default=0)
     minimum_quantity = models.IntegerField(default=0)
-    location = models.CharField(max_length=100, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     barcode = models.CharField(max_length=100, unique=True, blank=True, null=True)
 
     class Meta:
-        verbose_name_plural = "Inventory"
+        verbose_name_plural = "Inventories"
         ordering = ["company_name", "part_name"]
 
     def __str__(self):
@@ -78,7 +81,6 @@ class Inventory(models.Model):
 class StockTransaction(models.Model):
     TRANSACTION_TYPES = [
         ("purchase", "Purchase"),
-        ("sale", "Sale"),
         ("adjustment", "Adjustment"),
         ("return", "Return"),
         ("damage", "Damage/Loss"),

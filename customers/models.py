@@ -13,19 +13,18 @@ class Member(models.Model):
 
     name = models.CharField(max_length=100)
     phone = models.CharField(
-        max_length=15,
+        max_length=10,
         unique=True,
         validators=[
             RegexValidator(
-                regex=r"^\+?1?\d{9,15}$",
-                message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
+                regex=r"^\d{10}$",
+                message="Phone number must be exactly 10 digits.",
             )
         ],
     )
-    email = models.EmailField(blank=True, null=True)
     address = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="active")
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name="members")
+    branches = models.ManyToManyField(Branch, related_name="members")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     notes = models.TextField(blank=True, help_text="Additional notes about the member")
@@ -34,7 +33,6 @@ class Member(models.Model):
         ordering = ["-created_at"]
         verbose_name = "Member"
         verbose_name_plural = "Members"
-        unique_together = ["phone", "branch"]
 
     def __str__(self):
         return self.name

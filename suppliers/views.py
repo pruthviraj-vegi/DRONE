@@ -3,6 +3,10 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from .models import Supplier
 from Drone.decorators import admin_required
+from suppliers.forms import SupplierForm
+from django.views.generic import CreateView, UpdateView
+from django.urls import reverse_lazy
+from django.utils.decorators import method_decorator
 
 # Create your views here.
 
@@ -32,84 +36,40 @@ def supplier_list(request):
     return render(request, "suppliers/supplier_list.html", context)
 
 
-@admin_required
-def supplier_create(request):
-    if request.method == "POST":
-        name = request.POST.get("name")
-        contact_person = request.POST.get("contact_person")
-        phone = request.POST.get("phone")
-        email = request.POST.get("email")
-        address = request.POST.get("address")
-        tax_number = request.POST.get("tax_number")
-        registration_number = request.POST.get("registration_number")
-        payment_terms = request.POST.get("payment_terms")
-        notes = request.POST.get("notes")
+@method_decorator(admin_required, name="dispatch")
+class CreateSupplier(CreateView):
+    model = Supplier
+    form_class = SupplierForm
+    template_name = "suppliers/supplier_form.html"
+    success_url = reverse_lazy("suppliers:supplier_list")
 
-        if name and contact_person and phone and email and address:
-            supplier = Supplier.objects.create(
-                name=name,
-                contact_person=contact_person,
-                phone=phone,
-                email=email,
-                address=address,
-                tax_number=tax_number,
-                registration_number=registration_number,
-                payment_terms=payment_terms,
-                notes=notes,
-            )
-            messages.success(
-                request, f'Supplier "{supplier.name}" has been created successfully.'
-            )
-            return redirect("suppliers:supplier_list")
-        else:
-            messages.error(request, "Please fill in all required fields.")
+    def form_valid(self, form):
+        return super().form_valid(form)
 
-    return render(
-        request, "suppliers/supplier_form.html", {"title": "Create New Supplier"}
-    )
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Create New Supplier"
+        return context
 
 
-@admin_required
-def supplier_edit(request, pk):
-    supplier = get_object_or_404(Supplier, pk=pk)
+@method_decorator(admin_required, name="dispatch")
+class EditSupplier(UpdateView):
+    model = Supplier
+    form_class = SupplierForm
+    template_name = "suppliers/supplier_form.html"
+    success_url = reverse_lazy("suppliers:supplier_list")
 
-    if request.method == "POST":
-        name = request.POST.get("name")
-        contact_person = request.POST.get("contact_person")
-        phone = request.POST.get("phone")
-        email = request.POST.get("email")
-        address = request.POST.get("address")
-        tax_number = request.POST.get("tax_number")
-        registration_number = request.POST.get("registration_number")
-        payment_terms = request.POST.get("payment_terms")
-        notes = request.POST.get("notes")
-        is_active = request.POST.get("is_active") == "on"
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            f'Supplier "{form.instance.name}" has been Updated successfully.',
+        )
+        return super().form_valid(form)
 
-        if name and contact_person and phone and email and address:
-            supplier.name = name
-            supplier.contact_person = contact_person
-            supplier.phone = phone
-            supplier.email = email
-            supplier.address = address
-            supplier.tax_number = tax_number
-            supplier.registration_number = registration_number
-            supplier.payment_terms = payment_terms
-            supplier.notes = notes
-            supplier.is_active = is_active
-            supplier.save()
-
-            messages.success(
-                request, f'Supplier "{supplier.name}" has been updated successfully.'
-            )
-            return redirect("suppliers:supplier_list")
-        else:
-            messages.error(request, "Please fill in all required fields.")
-
-    return render(
-        request,
-        "suppliers/supplier_form.html",
-        {"supplier": supplier, "title": f"Edit Supplier: {supplier.name}"},
-    )
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = f"Edit Supplier: {self.object.name}"
+        return context
 
 
 @admin_required

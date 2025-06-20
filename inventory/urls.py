@@ -14,4 +14,7 @@ urlpatterns = [
         name="stock_transaction_list",
     ),
     path("<int:inventory_id>/update-stock/", views.update_stock, name="update_stock"),
+    path(
+        "branch-inventory/", views.branch_inventory_list, name="branch_inventory_list"
+    ),
 ]

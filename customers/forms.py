@@ -6,7 +6,7 @@ from branches.models import Branch
 class MemberForm(forms.ModelForm):
     class Meta:
         model = Member
-        fields = ["name", "phone", "email", "address", "status", "branch", "notes"]
+        fields = ["name", "phone", "address", "status", "branches", "notes"]
         widgets = {
             "name": forms.TextInput(
                 attrs={
@@ -19,14 +19,7 @@ class MemberForm(forms.ModelForm):
             "phone": forms.TextInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "+1234567890",
-                    "required": "true",
-                }
-            ),
-            "email": forms.EmailInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter email address",
+                    "placeholder": "1234567890",
                     "required": "true",
                 }
             ),
@@ -38,7 +31,9 @@ class MemberForm(forms.ModelForm):
                 }
             ),
             "status": forms.Select(attrs={"class": "form-select", "required": "true"}),
-            "branch": forms.Select(attrs={"class": "form-select", "required": "true"}),
+            "branches": forms.SelectMultiple(
+                attrs={"class": "form-select", "required": "true"}
+            ),
             "notes": forms.Textarea(
                 attrs={
                     "class": "form-control",
@@ -56,18 +51,12 @@ class MemberForm(forms.ModelForm):
         if self.user:
             if self.user.role == "admin":
                 # Admin can see all branches
-                self.fields["branch"].queryset = Branch.objects.all()
+                self.fields["branches"].queryset = Branch.objects.all()
             else:
                 # Other users can only see their branch
-                self.fields["branch"].queryset = Branch.objects.filter(
+                self.fields["branches"].queryset = Branch.objects.filter(
                     id=self.user.branch.id
                 )
-                # If editing, don't allow changing branch
+                # If editing, don't allow changing branches
                 if self.instance.pk:
-                    self.fields["branch"].disabled = True
-
-    def clean_phone(self):
-        phone = self.cleaned_data.get("phone")
-        if not phone.startswith("+"):
-            phone = "+" + phone
-        return phone
+                    self.fields["branches"].disabled = True

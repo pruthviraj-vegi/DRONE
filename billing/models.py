@@ -11,6 +11,13 @@ class BillingSession(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)  # False when converted to Bill
 
+    def __str__(self):
+        return self.name
+
+    @property
+    def total_amount(self):
+        return sum(item.amount for item in self.items.all())
+
 
 class BillingSessionItem(models.Model):
     session = models.ForeignKey(

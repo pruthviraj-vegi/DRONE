@@ -1,23 +1,12 @@
 # users/views.py
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import logout
 from django.contrib import messages
 from django.core.paginator import Paginator
 from .models import CustomUser, ROLE_CHOICES
-from .forms import CustomUserCreationForm, CustomLoginForm
+from .forms import CustomUserCreationForm, ResetPasswordForm, CustomUserChangeForm
 from Drone.decorators import admin_required
-from django.contrib.auth.views import LoginView
-from django.urls import reverse_lazy
 from branches.models import Branch
-
-
-def logout_view(request):
-    logout(request)
-    return redirect("users:login")
-
-
-def dashboard(request):
-    return render(request, "users/dashboard.html", {"user": request.user})
+from django.contrib.auth.decorators import login_required
 
 
 @admin_required
@@ -29,22 +18,13 @@ def create_user(request):
             messages.success(
                 request, f"User {user.full_name} has been created successfully."
             )
-            return redirect("users:dashboard")
+            return redirect("dashboard:dashboard")
     else:
         form = CustomUserCreationForm()
 
     return render(
         request, "users/create_user.html", {"form": form, "title": "Create New User"}
     )
-
-
-class CustomLoginView(LoginView):
-    form_class = CustomLoginForm
-    template_name = "users/login.html"
-    redirect_authenticated_user = True
-
-    def get_success_url(self):
-        return reverse_lazy("users:dashboard")
 
 
 def user_list(request):
@@ -122,7 +102,7 @@ def user_edit(request, pk):
         return redirect("users:user_list")
 
     if request.method == "POST":
-        form = CustomUserCreationForm(request.POST, instance=user)
+        form = CustomUserChangeForm(request.POST, instance=user)
         if form.is_valid():
             user = form.save()
             messages.success(
@@ -130,7 +110,7 @@ def user_edit(request, pk):
             )
             return redirect("users:user_list")
     else:
-        form = CustomUserCreationForm(instance=user)
+        form = CustomUserChangeForm(instance=user)
 
     # Filter branch choices based on user role
     if request.user.role != "admin":
@@ -161,3 +141,26 @@ def user_delete(request, pk):
         return redirect("users:user_list")
 
     return render(request, "users/user_confirm_delete.html", {"user": user})
+
+
+@admin_required
+def reset_password(request, pk):
+    user = get_object_or_404(CustomUser, pk=pk)
+    if request.method == "POST":
+        form = ResetPasswordForm(request.POST)
+        if form.is_valid():
+            new_password = form.cleaned_data["new_password1"]
+            user.set_password(new_password)
+            user.save()
+            messages.success(
+                request,
+                f'Password for user "{user.full_name}" has been reset successfully.',
+            )
+            return redirect("users:user_list")
+    else:
+        form = ResetPasswordForm()
+    return render(
+        request,
+        "users/reset_password.html",
+        {"form": form, "user": user, "title": f"Reset Password for {user.full_name}"},
+    )

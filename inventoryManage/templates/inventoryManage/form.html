@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+  <div class="container mt-4">
+    <h2>Transfer Inventory to Branch</h2>
+    <form method="post" id="transfer-form">
+      {% csrf_token %}
+      <div class="mb-3">{{ form.to_branch.label_tag }}
+        {{ form.to_branch|add_class:'form-select' }}</div>
+      <div class="mb-3">{{ form.notes.label_tag }}
+        {{ form.notes|add_class:'form-control' }}</div>
+      <h4>Items to Transfer</h4>
+      {{ formset.management_form }}
+      <table class="table table-bordered" id="formset-table">
+        <thead>
+          <tr>
+            <th>Inventory Item</th>
+            <th>Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item_form in formset %}
+            <tr>
+              <td>{{ item_form.inventory }}</td>
+              <td>{{ item_form.quantity }}</td>
+            </tr>
+          {% endfor %}
+          <!-- Hidden empty row for JS cloning -->
+          <tr id="empty-form-row" style="display:none;">
+            <td>{{ formset.empty_form.inventory }}</td>
+            <td>{{ formset.empty_form.quantity }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <button type="button" class="btn btn-secondary" id="add-row-btn">Add Another Item</button>
+      <button type="submit" class="btn btn-primary">Transfer</button>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const addRowBtn = document.getElementById('add-row-btn')
+      const formsetTable = document.getElementById('formset-table').getElementsByTagName('tbody')[0]
+      const totalForms = document.getElementById('id_form-TOTAL_FORMS')
+      const emptyRow = document.getElementById('empty-form-row')
+    
+      addRowBtn.addEventListener('click', function () {
+        const formCount = parseInt(totalForms.value)
+        const newRow = emptyRow.cloneNode(true)
+        newRow.style.display = ''
+        newRow.id = ''
+    
+        // Update all name, id, and for attributes in the new row
+        newRow.querySelectorAll('input, select, label').forEach(function (el) {
+          // Update name
+          if (el.name) {
+            el.name = el.name.replace(/__prefix__/g, formCount)
+          }
+          // Update id
+          if (el.id) {
+            el.id = el.id.replace(/__prefix__/g, formCount)
+          }
+          // Update label for
+          if (el.htmlFor) {
+            el.htmlFor = el.htmlFor.replace(/__prefix__/g, formCount)
+          }
+          // Clear value for new row
+          if (el.tagName === 'INPUT' || el.tagName === 'SELECT') {
+            el.value = ''
+          }
+        })
+    
+        formsetTable.appendChild(newRow)
+        totalForms.value = formCount + 1
+      })
+    })
+  </script>
+{% endblock %}

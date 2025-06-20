@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from .models import BillingSession, BillingSessionItem
 from inventory.models import Inventory
+from inventoryManage.models import BranchInventory
 from django.contrib import messages
 from django.http import JsonResponse
 import json
@@ -9,13 +9,11 @@ import json
 # Create your views here.
 
 
-@login_required
 def billing_session_list(request):
     sessions = BillingSession.objects.filter(user=request.user, is_active=True)
     return render(request, "billing/session_list.html", {"sessions": sessions})
 
 
-@login_required
 def billing_session_create(request):
     if request.method == "POST":
         name = request.POST.get("name")
@@ -26,7 +24,6 @@ def billing_session_create(request):
     return render(request, "billing/session_create.html")
 
 
-@login_required
 def billing_session_detail(request, session_id):
     session = get_object_or_404(
         BillingSession, id=session_id, user=request.user, is_active=True
@@ -37,7 +34,6 @@ def billing_session_detail(request, session_id):
     )
 
 
-@login_required
 def add_item_by_barcode(request, session_id):
     session = get_object_or_404(
         BillingSession, id=session_id, user=request.user, is_active=True
@@ -45,8 +41,20 @@ def add_item_by_barcode(request, session_id):
     if request.method == "POST":
         barcode = request.POST.get("barcode")
         quantity = 1  # Default quantity is 1
+
         try:
-            inventory = Inventory.objects.get(barcode=barcode)
+            if request.user.role != "admin":
+                data = BranchInventory.objects.filter(
+                    branch=request.user.branch, inventory__barcode=barcode
+                ).first()
+                if data:
+                    inventory = data.inventory
+                else:
+                    messages.error(request, "Item with this barcode not found.")
+                    return redirect("billing:session_detail", session_id=session.id)
+            else:
+                inventory = Inventory.objects.get(barcode=barcode)
+
             if inventory.quantity < quantity:
                 messages.error(request, "Not enough stock available.")
             else:
@@ -66,7 +74,6 @@ def add_item_by_barcode(request, session_id):
     return redirect("billing:session_detail", session_id=session.id)
 
 
-@login_required
 def update_items(request, session_id):
     session = get_object_or_404(
         BillingSession, id=session_id, user=request.user, is_active=True
@@ -91,7 +98,6 @@ def update_items(request, session_id):
     return redirect("billing:session_detail", session_id=session.id)
 
 
-@login_required
 def delete_item(request, item_id):
     item = get_object_or_404(BillingSessionItem, id=item_id, session__user=request.user)
     if request.method == "POST":
@@ -100,7 +106,6 @@ def delete_item(request, item_id):
     return JsonResponse({"status": "error"}, status=400)
 
 
-@login_required
 def update_item_api(request, item_id):
     item = get_object_or_404(BillingSessionItem, id=item_id, session__user=request.user)
     if request.method == "POST":
