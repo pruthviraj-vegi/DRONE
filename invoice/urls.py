@@ -13,7 +13,7 @@ urlpatterns = [
     path("fetch/", views.fetch_invoice, name="fetch_invoice"),
     path("<int:invoice_id>/", views.invoice_detail, name="invoice_detail"),
     path(
-        "<int:invoice_id>/edit/",
+        "edit/<int:invoice_id>/",
         views.InvoiceEditView.as_view(),
         name="invoice_edit",
     ),

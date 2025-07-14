@@ -1,14 +1,12 @@
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
-from django.utils import timezone
 from billing.models import BillingSession
-from customers.models import Member
 from invoice.models import Invoice, InvoiceItem
 from .forms import InvoiceForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
-from django.views.generic import UpdateView
+from django.views.generic import UpdateView, View
 from django.db.models import Q
 from base.utility import get_basic_data
 
@@ -101,9 +99,11 @@ class InvoiceEditView(LoginRequiredMixin, UpdateView):
     pk_url_kwarg = "invoice_id"
 
     def get_queryset(self):
-        return Invoice.objects.filter(
-            sale_user=self.request.user, id=self.kwargs["invoice_id"]
-        )
+        qs = Invoice.objects.filter(id=self.kwargs["invoice_id"])
+        user = self.request.user
+        if user.role == "admin" or user.is_superuser:
+            return qs
+        return qs.filter(sale_user=user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

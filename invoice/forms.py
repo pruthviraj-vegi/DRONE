@@ -30,13 +30,6 @@ class InvoiceForm(forms.ModelForm):
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 
-        self.fields["customer"].widget.attrs["class"] = "form-select"
-        self.fields["invoice_type"].widget.attrs["class"] = "form-select"
-        self.fields["total_amount"].widget.attrs["class"] = "form-control"
-        self.fields["payment_mode"].widget.attrs["class"] = "form-select"
-        self.fields["notes"].widget.attrs["class"] = "form-control"
-        self.fields["advance_amount"].widget.attrs["class"] = "form-control"
-
         if self.user:
             if self.user.role == "admin":
                 self.fields["customer"].queryset = Member.objects.filter(
