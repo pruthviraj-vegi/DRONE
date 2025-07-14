@@ -1,0 +1,18 @@
+{% load custom_filters %}
+{% for supplier in data %}
+  <tr>
+    <td>{{ supplier.name }}</td>
+    <td>{{ supplier.phone|phoneNo }}</td>
+    <td>{{ supplier.address }}</td>
+    <td>{{ supplier.tax_number }}</td>
+    <td>
+      <span class="badge {{ supplier.is_active|status_badge }}">{{ supplier.is_active|yesno:'Active,Inactive' }}</span>
+    </td>
+    <td>
+      <div class="btn-group">
+        <a href="{% url 'suppliers:supplier_edit' supplier.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+        <a href="{% url 'suppliers:supplier_delete' supplier.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+      </div>
+    </td>
+  </tr>
+{% endfor %}

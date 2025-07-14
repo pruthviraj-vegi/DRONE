@@ -1,0 +1,31 @@
+{% load static %} {% load custom_filters %}
+<div class="slot">
+  <div class="shop-name">
+    {% if shop_details.barcode_heading %}
+      {{ shop_details.barcode_heading }}
+    {% else %}
+      {{ shop_details.shopName }} Wayaau Agri Drones
+    {% endif %}
+  </div>
+  <div class="barcode">
+    <div class="image">
+      <img src="data:image/svg+xml;base64,{{ barcode_svg }}" />
+    </div>
+    <div class="text">
+      {% if values.supplier %}
+        ({{ values.supplier.id }})
+      {% endif %}
+      {{ values.barcode }}
+    </div>
+  </div>
+  <div class="names">{{ values.company_name }} - {{ values.part_name }}</div>
+  <div class="price-details">
+    <div class="price-text"></div>
+    <div class="price-text">
+      Mrp: <span class="price">{{ values.selling_price|nonDecimal_format }} /-</span>
+    </div>
+    {% comment %} <div>
+      Net: <span class="price">{{ values.discount_price|nonDecimal_format }} /-</span>
+    </div> {% endcomment %}
+  </div>
+</div>

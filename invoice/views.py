@@ -9,13 +9,15 @@ from .forms import InvoiceForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView
+from django.db.models import Q
+from base.utility import get_basic_data
 
 # Create your views here.
 
 
 def select_details(request, session_id):
     session = get_object_or_404(BillingSession, id=session_id, is_active=True)
-    items = session.items.select_related("inventory").all()
+    items = session.session_items.all()
     total_amount = sum(item.amount for item in items)
     form = InvoiceForm(initial={"total_amount": total_amount}, user=request.user)
 
@@ -28,6 +30,7 @@ def select_details(request, session_id):
         if form.is_valid():
             invoice = form.save(commit=False)
             invoice.sale_user = request.user
+            invoice.branch = request.user.branch
             invoice.save()
 
         for item in items:
@@ -52,13 +55,39 @@ def select_details(request, session_id):
 
 
 def invoice_list(request):
-    invoices = Invoice.objects.filter(sale_user=request.user).order_by("-id")
-    return render(request, "invoice/invoice_list.html", {"invoices": invoices})
+    template_name = "invoice/main_page.html"
+    return render(request, template_name)
+
+
+def fetch_invoice(request):
+    basic_data = get_basic_data(request)
+
+    q_obj = Q()
+
+    if request.user.role != "admin":
+        q_obj &= Q(sale_user__branch=request.user.branch)
+
+    search_query = basic_data["search_query"]
+    if search_query:
+        q_obj |= Q(id__icontains=search_query)
+        q_obj |= Q(customer__name__icontains=search_query)
+        q_obj |= Q(customer__phone__icontains=search_query)
+
+    queryset = (
+        Invoice.objects.filter(q_obj)
+        .select_related("customer", "sale_user")
+        .order_by(basic_data["sort_column"])
+    )
+    queryset = queryset[basic_data["start"] : basic_data["start"] + basic_data["limit"]]
+
+    context = {"data": queryset}
+    return render(request, "invoice/fetch.html", context)
 
 
 def invoice_detail(request, invoice_id):
     invoice = get_object_or_404(Invoice, id=invoice_id)
-    items = invoice.items.select_related("inventory").all()
+    items = invoice.invoice_items.select_related("inventory").all()
+
     return render(
         request, "invoice/invoice_detail.html", {"invoice": invoice, "items": items}
     )

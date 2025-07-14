@@ -7,33 +7,41 @@ from suppliers.forms import SupplierForm
 from django.views.generic import CreateView, UpdateView
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
+from base.utility import get_basic_data
+from django.db.models import Q
 
 # Create your views here.
 
 
 @admin_required
 def supplier_list(request):
-    suppliers = Supplier.objects.all()
+    template_name = "suppliers/main_page.html"
 
-    # Search functionality
-    search_query = request.GET.get("search", "")
+    return render(request, template_name)
+
+
+@admin_required
+def fetch(request):
+    basic_data = get_basic_data(request)
+
+    query = Q()
+
+    search_query = basic_data["search_query"]
     if search_query:
-        suppliers = (
-            suppliers.filter(name__icontains=search_query)
-            | suppliers.filter(contact_person__icontains=search_query)
-            | suppliers.filter(email__icontains=search_query)
+        query &= (
+            Q(name__icontains=search_query)
+            | Q(phone__icontains=search_query)
+            | Q(address__icontains=search_query)
+            | Q(tax_number__icontains=search_query)
         )
 
-    # Pagination
-    paginator = Paginator(suppliers, 10)  # Show 10 suppliers per page
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    queryset = Supplier.objects.filter(query).order_by(basic_data["sort_column"])
+    queryset = queryset[basic_data["start"] : basic_data["start"] + basic_data["limit"]]
 
     context = {
-        "page_obj": page_obj,
-        "search_query": search_query,
+        "data": queryset,
     }
-    return render(request, "suppliers/supplier_list.html", context)
+    return render(request, "suppliers/fetch.html", context)
 
 
 @method_decorator(admin_required, name="dispatch")

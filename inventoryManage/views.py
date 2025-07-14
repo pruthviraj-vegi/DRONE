@@ -6,21 +6,32 @@ from django.forms import formset_factory
 from django.core.paginator import Paginator
 from Drone.decorators import admin_required
 from django.db import transaction
+from base.utility import get_basic_data
+from django.db.models import Q
 
 
 @admin_required
 def branch_inventory_transfer_list(request):
-    transactions = TransactionDetail.objects.select_related(
-        "from_branch", "to_branch"
-    ).order_by("-created_at")
-    paginator = Paginator(transactions, 20)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-    return render(
-        request,
-        "inventoryManage/main_page.html",
-        {"page_obj": page_obj},
+    template_name = "inventoryManage/main_page.html"
+    return render(request, template_name)
+
+
+@admin_required
+def fetch_transactions(request):
+    basic_data = get_basic_data(request)
+    query = Q()
+    search_query = basic_data["search_query"]
+    if search_query:
+        query &= Q(name__icontains=search_query)
+
+    transactions = TransactionDetail.objects.filter(query).order_by(
+        basic_data["sort_column"]
     )
+    transactions = transactions[
+        basic_data["start"] : basic_data["start"] + basic_data["limit"]
+    ]
+
+    return render(request, "inventoryManage/fetch.html", {"data": transactions})
 
 
 @admin_required
@@ -56,7 +67,6 @@ def branch_inventory_transfer(request):
                     ).first()
 
                     if branch_inv:
-                        old_qty = branch_inv.quantity
                         branch_inv.quantity += quantity
                         branch_inv.save()
                         transaction_type = "update"
@@ -64,7 +74,6 @@ def branch_inventory_transfer(request):
                         branch_inv = BranchInventory.objects.create(
                             inventory=inventory, branch=to_branch, quantity=quantity
                         )
-                        old_qty = 0
                         transaction_type = "forward"
 
                     # Log transaction
@@ -72,11 +81,10 @@ def branch_inventory_transfer(request):
                         branch_inventory=branch_inv,
                         transaction_detail=transaction_detail,
                         transaction_type=transaction_type,
-                        quantity_change=quantity,
-                        previous_quantity=old_qty,
-                        new_quantity=branch_inv.quantity,
+                        quantity=quantity,
                         notes=notes,
                     )
+                    branch_inv.save()
                 messages.success(request, "Inventory transferred successfully.")
                 return redirect("inventoryManage:branch_inventory_transfer")
     else:
@@ -92,9 +100,13 @@ def branch_inventory_transfer(request):
 
 @admin_required
 def transaction_details(request, transaction_id):
-    transaction = BranchInventoryTransaction.objects.select_related(
-        "branch_inventory__inventory", "branch_inventory__branch"
-    ).filter(transaction_detail_id=transaction_id)
+    transaction = (
+        BranchInventoryTransaction.objects.select_related(
+            "branch_inventory__inventory", "branch_inventory__branch"
+        )
+        .filter(transaction_detail_id=transaction_id)
+        .order_by("-id")
+    )
     paginator = Paginator(transaction, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)

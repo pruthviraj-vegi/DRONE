@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block content %}
   <div class="container-fluid">
@@ -15,14 +16,49 @@
       <div class="card-body">
         <form method="post" action="{% url 'billing:add_item_by_barcode' session.id %}" class="row g-3 align-items-end">
           {% csrf_token %}
-          <div class="col-md-8">
-            <label for="barcode" class="form-label">Barcode</label>
-            <input type="text" class="form-control" id="barcode" name="barcode" required autofocus />
+          <div class="col-md-8 d-flex align-items-end">
+            <div class="flex-grow-1">
+              <label for="barcode" class="form-label">Barcode</label>
+              <input type="text" class="form-control" id="barcode" name="barcode" required autofocus />
+            </div>
+            <button type="button" class="btn btn-outline-secondary ms-2 mb-1" data-bs-toggle="modal" data-bs-target="#inventorySearchModal" title="Search Inventory"><i class="fas fa-search"></i></button>
           </div>
           <div class="col-md-4">
             <button type="submit" class="btn btn-success w-100">Add Item</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Inventory Search Modal -->
+    <div class="modal fade" id="inventorySearchModal" tabindex="-1" aria-labelledby="inventorySearchModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="inventorySearchModalLabel">Search Inventory</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <input type="text" class="form-control" id="inventory-search-input" placeholder="Search by name, barcode, etc." />
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover" id="inventory-search-results">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Barcode</th>
+                    <th>Stock</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Results will be populated here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -56,7 +92,7 @@
                     <td>
                       <input type="number" class="form-control form-control-sm price-input" value="{{ item.price }}" min="0" step="0.01" data-item-id="{{ item.id }}" style="width: 100px;" />
                     </td>
-                    <td class="item-total">{{ item.amount|floatformat:2 }}</td>
+                    <td class="item-total">{{ item.amount|currency_format }}</td>
                     <td>
                       <button type="button" class="btn btn-danger btn-sm delete-item" data-item-id="{{ item.id }}"><i class="fas fa-trash"></i></button>
                     </td>
@@ -171,5 +207,84 @@
         })
       })
     })
+
+    // --- Inventory Search Modal AJAX ---
+    const inventorySearchInput = document.getElementById('inventory-search-input');
+    const inventorySearchResults = document.getElementById('inventory-search-results').querySelector('tbody');
+    const sessionId = '{{ session.id }}';
+
+    function renderInventoryResults(items) {
+      inventorySearchResults.innerHTML = '';
+      if (items.length === 0) {
+        inventorySearchResults.innerHTML = '<tr><td colspan="4" class="text-center">No results found.</td></tr>';
+        return;
+      }
+      items.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.part_name}</td>
+          <td>${item.barcode}</td>
+          <td>${item.stock}</td>
+          <td><button class="btn btn-sm btn-primary add-inventory-item" data-id="${item.id}">Add</button></td>
+        `;
+        inventorySearchResults.appendChild(row);
+      });
+    }
+
+    let searchTimeout = null;
+    inventorySearchInput.addEventListener('input', function() {
+      const query = this.value.trim();
+      clearTimeout(searchTimeout);
+      if (!query) {
+        inventorySearchResults.innerHTML = '';
+        return;
+      }
+      searchTimeout = setTimeout(() => {
+        fetch(`/billing/api/inventory-search/?q=${encodeURIComponent(query)}`)
+          .then(res => res.json())
+          .then(data => renderInventoryResults(data.results || []))
+          .catch(() => {
+            inventorySearchResults.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error loading results.</td></tr>';
+          });
+      }, 300);
+    });
+
+    // Delegate click for dynamically added buttons
+    inventorySearchResults.addEventListener('click', function(e) {
+      if (e.target.classList.contains('add-inventory-item')) {
+        const inventoryId = e.target.getAttribute('data-id');
+        fetch(`/billing/api/session/${sessionId}/add-item/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: JSON.stringify({ inventory_id: inventoryId })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            // Optionally, reload the page or update the items table dynamically
+            location.reload();
+          } else {
+            alert(data.message || 'Failed to add item.');
+          }
+        })
+        .catch(() => alert('Error adding item.'));
+      }
+    });
+
+    // Open inventory search modal on F10 key
+    document.addEventListener('keydown', function(e) {
+      // F10 key code is 121
+      if (e.key === 'F10' || e.keyCode === 121) {
+        e.preventDefault();
+        const modal = new bootstrap.Modal(
+          document.getElementById("inventorySearchModal")
+        );
+        modal.show();
+        inventorySearchInput.focus();
+      }
+    });
   </script>
 {% endblock %}

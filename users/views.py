@@ -4,12 +4,12 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from .models import CustomUser, ROLE_CHOICES
 from .forms import CustomUserCreationForm, ResetPasswordForm, CustomUserChangeForm
-from Drone.decorators import admin_required
+from Drone.decorators import admin_required, role_required
 from branches.models import Branch
 from django.contrib.auth.decorators import login_required
 
 
-@admin_required
+@role_required(allowed_roles=["admin"])
 def create_user(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
@@ -27,6 +27,7 @@ def create_user(request):
     )
 
 
+@role_required(allowed_roles=["admin", "manager"])
 def user_list(request):
     # Start with all users
     users = CustomUser.objects.all()
@@ -65,9 +66,10 @@ def user_list(request):
         "branches": Branch.objects.all() if request.user.role == "admin" else None,
         "role_choices": ROLE_CHOICES,
     }
-    return render(request, "users/user_list.html", context)
+    return render(request, "users/main_page.html", context)
 
 
+@role_required(allowed_roles=["admin", "manager"])
 def user_create(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
@@ -93,11 +95,12 @@ def user_create(request):
     )
 
 
+@role_required(allowed_roles=["admin", "manager"])
 def user_edit(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
 
     # Check if user has permission to edit this user
-    if request.user.role != "admin" and user.branch != request.user.branch:
+    if request.user.role not in ["admin"] and user.branch != request.user.branch:
         messages.error(request, "You don't have permission to edit this user.")
         return redirect("users:user_list")
 
@@ -126,11 +129,12 @@ def user_edit(request, pk):
     )
 
 
+@role_required(allowed_roles=["admin"])
 def user_delete(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
 
     # Check if user has permission to delete this user
-    if request.user.role != "admin" and user.branch != request.user.branch:
+    if request.user.role not in ["admin"] and user.branch != request.user.branch:
         messages.error(request, "You don't have permission to delete this user.")
         return redirect("users:user_list")
 
@@ -143,7 +147,7 @@ def user_delete(request, pk):
     return render(request, "users/user_confirm_delete.html", {"user": user})
 
 
-@admin_required
+@role_required(allowed_roles=["admin"])
 def reset_password(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
     if request.method == "POST":

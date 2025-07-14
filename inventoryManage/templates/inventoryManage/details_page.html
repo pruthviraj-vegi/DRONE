@@ -13,9 +13,7 @@
             <thead>
               <tr>
                 <th>Inventory</th>
-                <th>Previous Quantity</th>
-                <th>New Quantity</th>
-                <th>Quantity Change</th>
+                <th>Quantity</th>
                 <th>Notes</th>
               </tr>
             </thead>
@@ -23,9 +21,7 @@
               {% for tx in page_obj %}
                 <tr>
                   <td>{{ tx.branch_inventory.inventory.part_name }}</td>
-                  <td>{{ tx.previous_quantity }}</td>
-                  <td>{{ tx.new_quantity }}</td>
-                  <td>{{ tx.quantity_change }}</td>
+                  <td>{{ tx.quantity }}</td>
                   <td>{{ tx.notes|default:'-' }}</td>
                 </tr>
               {% empty %}

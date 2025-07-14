@@ -7,29 +7,33 @@ from django.urls import reverse_lazy
 from .forms import BranchForm
 from django.views.generic import CreateView, UpdateView
 from django.utils.decorators import method_decorator
+from base.utility import get_basic_data
+from django.db.models import Q
 
 
 @admin_required
 def branch_list(request):
-    branches = Branch.objects.all()
+    template_name = "branches/main_page.html"
 
-    # Search functionality
-    search_query = request.GET.get("search", "")
+    return render(request, template_name)
+
+
+@admin_required
+def fetch_branches(request):
+
+    basic_data = get_basic_data(request)
+
+    query = Q()
+    search_query = basic_data["search_query"]
     if search_query:
-        branches = branches.filter(name__icontains=search_query) | branches.filter(
-            address__icontains=search_query
-        )
+        query &= Q(name__icontains=search_query) | Q(code__icontains=search_query)
 
-    # Pagination
-    paginator = Paginator(branches, 10)  # Show 10 branches per page
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    queryset = Branch.objects.filter(query).order_by(basic_data["sort_column"])
+    queryset = queryset[basic_data["start"] : basic_data["start"] + basic_data["limit"]]
 
-    context = {
-        "page_obj": page_obj,
-        "search_query": search_query,
-    }
-    return render(request, "branches/branch_list.html", context)
+    context = {"data": queryset}
+
+    return render(request, "branches/fetch.html", context)
 
 
 @method_decorator(admin_required, name="dispatch")

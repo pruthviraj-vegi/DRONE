@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
 
-{% block title %}Users - Drone Management System{% endblock %}
+{% block title %}Users{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -69,7 +71,7 @@
                         <tr>
                             <td>{{ user.full_name }}</td>
                             <td>{{ user.email }}</td>
-                            <td>{{ user.phone }}</td>
+                            <td>{{ user.phone|phoneNo }}</td>
                             <td>
                                 <span class="badge {% if user.role == 'admin' %}bg-info{% elif user.role == 'staff' %}bg-success{% elif user.role == 'user' %}bg-warning{% else %}bg-secondary{% endif %}">
                                     {{ user.get_role_display }}

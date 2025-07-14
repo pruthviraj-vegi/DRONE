@@ -4,16 +4,25 @@ from invoice.models import Invoice
 
 
 class InvoiceForm(forms.ModelForm):
-
     class Meta:
         model = Invoice
-        fields = ["customer", "invoice_type", "total_amount"]
+        fields = [
+            "customer",
+            "invoice_type",
+            "payment_mode",
+            "total_amount",
+            "advance_amount",
+            "notes",
+        ]
         widgets = {
             "customer": forms.Select(attrs={"class": "form-select"}),
             "invoice_type": forms.Select(attrs={"class": "form-select"}),
+            "payment_mode": forms.Select(attrs={"class": "form-select"}),
             "total_amount": forms.TextInput(
                 attrs={"class": "form-control", "readonly": True}
             ),
+            "advance_amount": forms.TextInput(attrs={"class": "form-control"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -24,13 +33,19 @@ class InvoiceForm(forms.ModelForm):
         self.fields["customer"].widget.attrs["class"] = "form-select"
         self.fields["invoice_type"].widget.attrs["class"] = "form-select"
         self.fields["total_amount"].widget.attrs["class"] = "form-control"
+        self.fields["payment_mode"].widget.attrs["class"] = "form-select"
+        self.fields["notes"].widget.attrs["class"] = "form-control"
+        self.fields["advance_amount"].widget.attrs["class"] = "form-control"
 
         if self.user:
             if self.user.role == "admin":
-                self.fields["customer"].queryset = Member.objects.all()
+                self.fields["customer"].queryset = Member.objects.filter(
+                    status="active"
+                )
             else:
                 self.fields["customer"].queryset = Member.objects.filter(
-                    branches__in=[self.user.branch]
+                    branches=self.user.branch,
+                    status="active",
                 )
 
     def clean_amount(self):

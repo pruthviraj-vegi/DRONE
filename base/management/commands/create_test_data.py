@@ -3,7 +3,7 @@ from django.utils import timezone
 from branches.models import Branch
 from customers.models import Member
 from users.models import CustomUser
-from inventory.models import Inventory
+from inventory.models import Inventory, StockTransaction
 
 
 class Command(BaseCommand):
@@ -14,16 +14,16 @@ class Command(BaseCommand):
         main_branch, sub_branch = self.create_branches()
         self.create_users(main_branch)
         self.create_members(main_branch, sub_branch)
-        self.create_inventory()
+        self.create_inventory(main_branch)
         self.stdout.write(self.style.SUCCESS("Test data creation complete!"))
 
     def create_branches(self):
         main_branch, created = Branch.objects.get_or_create(
-            name="Main Branch",
+            name="Hunsagi",
             defaults={
-                "code": "MAIN",
+                "code": "HUN",
                 "type": "main",
-                "email": "main@example.com",
+                "email": "hunsagi@example.com",
                 "address": "123 Main St",
                 "phone": "1234567890",
             },
@@ -34,12 +34,12 @@ class Command(BaseCommand):
             self.stdout.write("Main branch already exists")
 
         sub_branch, created = Branch.objects.get_or_create(
-            name="Sub Branch 1",
+            name="Kadapa",
             defaults={
-                "code": "SUB1",
+                "code": "KAD",
                 "type": "sub",
                 "parent": main_branch,
-                "email": "sub1@example.com",
+                "email": "kadapa@example.com",
                 "address": "456 Sub St",
                 "phone": "0987654321",
             },
@@ -70,8 +70,20 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS("Successfully created superuser Chanti")
             )
+
+        if not CustomUser.objects.filter(phone="9945485444").exists():
+            CustomUser.objects.create_superuser(
+                phone="9945485444",
+                password="1234",
+                full_name="vamsi Krishna",
+                role="admin",
+                branch=main_branch,
+            )
+            self.stdout.write(
+                self.style.SUCCESS("Successfully created superuser vamsi")
+            )
         else:
-            self.stdout.write("Superuser Chanti already exists")
+            self.stdout.write("Superuser vamsi already exists")
 
         if not CustomUser.objects.filter(phone="9876543211").exists():
             staff_user = CustomUser.objects.create_user(
@@ -91,7 +103,7 @@ class Command(BaseCommand):
         member1, created = Member.objects.get_or_create(
             phone="1112223333",
             defaults={
-                "name": "John Doe",
+                "name": "Raghavendra",
                 "address": "1 Test Ave",
             },
         )
@@ -106,7 +118,7 @@ class Command(BaseCommand):
         member2, created = Member.objects.get_or_create(
             phone="4445556666",
             defaults={
-                "name": "Jane Smith",
+                "name": "Rajesh",
                 "address": "2 Test St",
             },
         )
@@ -118,20 +130,37 @@ class Command(BaseCommand):
         else:
             self.stdout.write("Member Jane Smith already exists")
 
-    def create_inventory(self):
+    def create_inventory(self, main_branch):
+
         try:
+            self.stdout.write(self.style.SUCCESS("Successfully created inventory"))
             inventory = Inventory(
                 company_name="Test Company",
                 part_name="Test Part",
                 part_number="1234567890",
-                description="Test Description",
+                uom="PCS",
+                notes="Test Notes",
                 purchased_price=100,
                 selling_price=150,
                 discount=10,
-                quantity=100,
                 minimum_quantity=10,
+                gst=5,
+                is_active=True,
+                branch=main_branch,
+                created_by=CustomUser.objects.get(phone="7022229993"),
             )
             inventory.save()
             self.stdout.write(self.style.SUCCESS("Successfully created inventory"))
+            branch_inventory = StockTransaction(
+                inventory=inventory,
+                transaction_type="initial",
+                quantity=100,
+                notes="Test Notes",
+                created_by=CustomUser.objects.get(phone="7022229993"),
+            )
+            branch_inventory.save()
+            self.stdout.write(
+                self.style.SUCCESS("Successfully created stock transaction")
+            )
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error creating inventory: {e}"))

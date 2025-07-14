@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}
+  Quote Session Details
+{% endblock %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Session Details</h3>
+            <a href="{% url 'report:quotation_a4' session.pk %}" class="btn btn-secondary no-print" target="_blank">Download Quotation</a>
+          </div>
+          <div class="card-body">
+            <dl class="row">
+              <dt class="col-sm-3">Customer</dt>
+              <dd class="col-sm-9">{{ session.customer.name }}</dd>
+              <dt class="col-sm-3">Status</dt>
+              <dd class="col-sm-9">{{ session.get_status_display }}</dd>
+              <dt class="col-sm-3">Total Amount</dt>
+              <dd class="col-sm-9">{{ session.total_amount|currency_format }}</dd>
+              <dt class="col-sm-3">Created At</dt>
+              <dd class="col-sm-9">{{ session.created_at|date:'Y-m-d H:i' }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Add Items to Session</h4>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <input type="text" id="inventory-search" class="form-control" placeholder="Search Inventory..." />
+            </div>
+            <form method="post" action="{% url 'quote:session_detail' session.pk %}" id="quote-session-form">
+              {% csrf_token %}
+              {{ formset.management_form }}
+              <div class="table-responsive">
+                <table class="table table-bordered align-middle" id="add-items-table">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width:40%">Inventory</th>
+                      <th style="width:30%">Quantity</th>
+                      <th style="width:30%">Price</th>
+                    </tr>
+                    <tr class="table-info">
+                      <th class="text-end">Totals:</th>
+                      <th>
+                        <span id="total-quantity">0</span> pcs
+                      </th>
+                      <th>
+                        ₹ <span id="total-amount">0.00</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for form, inventory in form_inventory_pairs %}
+                      <tr>
+                        <td>
+                          {{ form.inventory_id }}
+                          {% for hidden in form.hidden_fields %}
+                            {{ hidden }}
+                          {% endfor %}
+                          <span class="fw-bold inventory-name">{{ inventory.name }}</span>
+                        </td>
+                        <td>
+                          <div class="input-group">
+                            {{ form.quantity }}
+                            <span class="input-group-text">pcs</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            {{ form.price }}
+                          </div>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-success" id="save-quote-btn">Save Quote Session</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function formatINR(x) {
+      // Format number as Indian currency (e.g., 12,34,567.89)
+      x = x.toFixed(2)
+      var afterPoint = ''
+      if (x.indexOf('.') > 0) afterPoint = x.substring(x.indexOf('.'), x.length)
+      x = Math.floor(x)
+      x = x.toString()
+      var lastThree = x.substring(x.length - 3)
+      var otherNumbers = x.substring(0, x.length - 3)
+      if (otherNumbers != '') lastThree = ',' + lastThree
+      var res = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + lastThree + afterPoint
+      return res
+    }
+    function updateTotals() {
+      let totalQty = 0
+      let totalAmt = 0
+      const qtyInputs = document.querySelectorAll('input[name$="-quantity"]')
+      const priceInputs = document.querySelectorAll('input[name$="-price"]')
+      qtyInputs.forEach((qtyInput, idx) => {
+        const qty = parseFloat(qtyInput.value) || 0
+        const price = parseFloat(priceInputs[idx].value) || 0
+        totalQty += qty
+        totalAmt += qty * price
+      })
+      document.getElementById('total-quantity').textContent = totalQty
+      document.getElementById('total-amount').textContent = formatINR(totalAmt)
+    }
+    document.addEventListener('input', function (e) {
+      if (e.target.name && (e.target.name.endsWith('-quantity') || e.target.name.endsWith('-price'))) {
+        updateTotals()
+        // Autosave logic
+        if (window.autosaveTimeout) clearTimeout(window.autosaveTimeout)
+        window.autosaveTimeout = setTimeout(function () {
+          document.getElementById('quote-session-form').submit()
+        }, 5000)
+      }
+    })
+    document.addEventListener('DOMContentLoaded', updateTotals)
+    
+    // Prevent form submit on Enter in any input
+    document.getElementById('quote-session-form').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+        e.preventDefault()
+        return false
+      }
+    })
+    // Submit form only when the button is clicked
+    document.getElementById('save-quote-btn').addEventListener('click', function () {
+      document.getElementById('quote-session-form').submit()
+    })
+    
+    // Inventory search filter
+    document.getElementById('inventory-search').addEventListener('input', function () {
+      const search = this.value.toLowerCase()
+      const rows = document.querySelectorAll('#add-items-table tbody tr')
+      rows.forEach((row) => {
+        const name = row.querySelector('.inventory-name').textContent.toLowerCase()
+        row.style.display = name.includes(search) ? '' : 'none'
+      })
+    })
+  </script>
+{% endblock %}

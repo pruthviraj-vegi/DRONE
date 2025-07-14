@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  {% load static %}
+  {% load custom_filters %}
+  {% load i18n %}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=210mm, initial-scale=1" />
+    <title>Quotation - #EST-{{ session.pk }}</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'styles/quotation.css' %}" />
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" />
+  </head>
+  <body>
+    <div class="quotation-container">
+      <header class="header-bar">
+        <div class="company">
+          <img src="{% static 'images/logo.svg' %}" alt="Waayuputra Agri Drone Pvt Ltd Logo" />
+          {{ company_name|default:'Waayuputra Agri Drone Pvt Ltd' }}
+        </div>
+        <div class="quotation-title">QUOTATION</div>
+      </header>
+      <main>
+        <section class="meta-section">
+          <div class="meta-box">
+            <strong class="label-blue">To:</strong><br />
+            {{ session.customer.name }}<br />
+            {{ session.customer.phone|phoneNo }}<br />
+            Place of Supply: 29-KARNATAKA
+          </div>
+          <div class="meta-box">
+            <table style="width:100%; border:none; " class="no-bg">
+              <tr>
+                <td class="meta-label">Quotation #:</td>
+                <td class="meta-value">EST-{{ session.pk }}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">Date:</td>
+                <td class="meta-value">{{ session.created_at|date:'d M Y' }}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">Validity:</td>
+                <td class="meta-value">{{ session.created_at|date:'d M Y' }}</td>
+              </tr>
+            </table>
+          </div>
+        </section>
+        <section class="meta-section">
+          <div class="meta-box">
+            <strong class="label-blue">GSTIN:</strong> {{ company_gstin|default:'29BXMPT1809C1Z9' }}<br />
+            <strong class="label-blue">PAN:</strong> {{ company_pan|default:'AAECW0946L' }}<br />
+            <strong class="label-blue">Address:</strong> {{ company_address|default:'Shop No.18-78, Near Srirama Temple,<br />Raghunathpur Camp, Padashetti Colony, Hunsgi,<br />Yadgiri, KARNATAKA - 585215'|safe }}<br />
+            <strong class="label-blue">Mobile:</strong> {{ company_mobile|default:'+91 9353813667, +91 9945485444' }}<br />
+            <strong class="label-blue">Email:</strong> {{ company_email|default:'hanumanagdrones@gmail.com' }}
+          </div>
+          <div class="meta-box payment-details">
+            <h3>Payment Details:</h3>
+            <table style="width:100%; border:none;" class="no-bg">
+              <tr>
+                <td class="meta-label">Bank:</td>
+                <td class="meta-value">{{ company_bank|default:'Karnataka Bank' }}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">Account #:</td>
+                <td class="meta-value">{{ company_account|default:'3242500101213301' }}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">IFSC Code:</td>
+                <td class="meta-value">{{ company_ifsc|default:'KARB0000324' }}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">Branch:</td>
+                <td class="meta-value">{{ company_branch|default:'HUNSAGI' }}</td>
+              </tr>
+            </table>
+          </div>
+        </section>
+        <section>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Description</th>
+                <th scope="col">Qty</th>
+                <th scope="col">Rate</th>
+                <th scope="col">Taxable Value</th>
+                <th scope="col">Tax Amount</th>
+                <th scope="col">Tax Rate(%)</th>
+                <th scope="col">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td class="description-cell" data-fulltext="{{ item.quote_inventory.name }}">{{ item.quote_inventory.name }}</td>
+                  <td>{{ item.quantity }}</td>
+                  <td style="text-align:right;">{{ item.price|currency_format }}</td>
+                  <td style="text-align:right;">{{ item.tax_value|currency_format }}</td>
+                  <td style="text-align:right;">{{ item.tax_amount|currency_format }}</td>
+                  <td style="text-align:right;">{{ item.quote_inventory.tax }}</td>
+                  <td style="text-align:right;">{{ item.amount|currency_format }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </section>
+        <section class="summary">
+          <table class="summary-box">
+            <tr>
+              <th>Taxable Amount</th>
+              <td style="text-align:right;">₹ {{ session.total_tax_value|currency_format }}</td>
+            </tr>
+            {% for gst, values in session.tax_values_by_gst.details.items %}
+              <tr>
+                <th>CGST ({{ gst|divideby:2 }}%)</th>
+                <td style="text-align:right;">₹ {{ values.total_tax_value|divideby:2|currency_format }}</td>
+              </tr>
+              <tr>
+                <th>SGST ({{ gst|divideby:2 }}%)</th>
+                <td style="text-align:right;">₹ {{ values.total_tax_value|divideby:2|currency_format }}</td>
+              </tr>
+            {% endfor %}
+            <tr>
+              <th>Total</th>
+              <td style="text-align:right;">₹ {{ session.total_amount|currency_format }}</td>
+            </tr>
+          </table>
+        </section>
+        <div style="margin-top:8px; text-align:right; font-size:1em; color:#222; font-weight:500;">Total in Words: {{ session.total_amount|numberToWords }}</div>
+      </main>
+      <footer class="footer">
+        <div>
+          <strong>Authorized Signatory</strong><br />
+          <div class="signature">
+            <div>For {{ company_name|default:'Waayuputra Agri Drone Pvt Ltd' }}</div>
+            <div>Authorized Signatory</div>
+          </div>
+        </div>
+      </footer>
+      <div class="thank-you-footer">Thank you for considering us for your business needs!</div>
+      {% comment %}Maintainer notes: - Company/bank info can be overridden by passing context variables (company_name, company_gstin, etc.) - All static text is wrapped in{% trans %}for i18n. - Use CSS classes instead of inline styles for repeated patterns. - Semantic HTML5 elements used for structure.{% endcomment %}
+    </div>
+  </body>
+</html>

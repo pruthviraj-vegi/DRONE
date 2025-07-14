@@ -6,8 +6,10 @@ from django.contrib.auth.models import (
 )
 from django.db import models
 from django.utils import timezone
+from base.stringProcess import StringProcessor
 
 from branches.models import Branch
+
 
 ROLE_CHOICES = (
     ("admin", "Admin"),
@@ -33,11 +35,17 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(null=True, blank=True)
     phone = models.CharField(max_length=15, unique=True)
     full_name = models.CharField(max_length=255)
+    email = models.EmailField(null=True, blank=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
-    branch = models.ForeignKey(Branch, null=True, blank=True, on_delete=models.SET_NULL)
+    branch = models.ForeignKey(
+        Branch,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="branch_users",
+    )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
@@ -49,3 +57,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.full_name} ({self.phone})"
+
+    def save(self, *args, **kwargs):
+        self.full_name = StringProcessor(self.full_name).title
+        self.email = StringProcessor(self.email).capitalized
+        super().save(*args, **kwargs)

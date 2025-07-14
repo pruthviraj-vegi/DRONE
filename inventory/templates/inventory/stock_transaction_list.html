@@ -45,9 +45,7 @@
                         <tr>
                             <th>Date</th>
                             <th>Type</th>
-                            <th>Quantity Change</th>
-                            <th>Previous Quantity</th>
-                            <th>New Quantity</th>
+                            <th>Quantity</th>
                             <th>Reference</th>
                             <th>Notes</th>
                         </tr>
@@ -55,15 +53,13 @@
                     <tbody>
                         {% for transaction in page_obj %}
                         <tr>
-                            <td>{{ transaction.transaction_date }}</td>
+                            <td>{{ transaction.created_at|date:"d-m-Y" }}</td>
                             <td>{{ transaction.get_transaction_type_display }}</td>
                             <td>
-                                <span class="badge {% if transaction.quantity_change > 0 %}bg-success{% else %}bg-danger{% endif %}">
-                                    {{ transaction.quantity_change|stringformat:"+d" }}
+                                <span class="badge {% if transaction.quantity > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ transaction.quantity|stringformat:"+d" }}
                                 </span>
                             </td>
-                            <td>{{ transaction.previous_quantity }}</td>
-                            <td>{{ transaction.new_quantity }}</td>
                             <td>{{ transaction.reference_number|default:"-" }}</td>
                             <td>{{ transaction.notes|default:"-" }}</td>
                         </tr>

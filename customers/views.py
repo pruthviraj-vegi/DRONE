@@ -1,47 +1,53 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.core.paginator import Paginator
+from django.db.models import Q
+
+from Drone.decorators import role_required
 from .models import Member
 from .forms import MemberForm
 from django.views.generic import CreateView, UpdateView
 from django.urls import reverse_lazy
+from base.utility import get_basic_data
 
 # Create your views here.
 
 
 def member_list(request):
-    # Start with all members
-    members = Member.objects.all()
+
+    context = {
+        "status_choices": Member.STATUS_CHOICES,
+    }
+
+    return render(request, "customers/main_page.html", context)
+
+
+def fetch_members(request):
+    basic_data = get_basic_data(request)
+    # Build Q object for filtering
+    query = Q()
 
     # Filter by branch if user is not admin
     if request.user.role != "admin":
-        members = members.filter(branches=request.user.branch)
+        query &= Q(branches=request.user.branch)
 
     # Search functionality
-    search_query = request.GET.get("search", "")
-
+    search_query = basic_data["search_query"]
     if search_query:
-        members = members.filter(name__icontains=search_query) | members.filter(
-            phone__icontains=search_query
-        )
+        query &= Q(name__icontains=search_query) | Q(phone__icontains=search_query)
 
     # Status filter
     status_filter = request.GET.get("status", "")
     if status_filter:
-        members = members.filter(status=status_filter)
+        query &= Q(status=status_filter)
 
-    # Pagination
-    paginator = Paginator(members, 10)  # Show 10 members per page
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    queryset = Member.objects.filter(query).order_by(basic_data["sort_column"])
+    queryset = queryset[basic_data["start"] : basic_data["start"] + basic_data["limit"]]
 
     context = {
-        "page_obj": page_obj,
-        "search_query": search_query,
-        "status_filter": status_filter,
-        "status_choices": Member.STATUS_CHOICES,
+        "data": queryset,
     }
-    return render(request, "customers/main_page.html", context)
+
+    return render(request, "customers/fetch.html", context)
 
 
 class CreateCustomer(CreateView):
@@ -68,9 +74,9 @@ class EditCustomer(UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
-        # Permission check
+        # Permission check - simplified as the decorator handles the base role check
         if (
-            request.user.role != "admin"
+            request.user.role not in ["admin"]
             and request.user.branch not in self.object.branches.all()
         ):
             messages.error(request, "You don't have permission to edit this member.")
@@ -96,12 +102,13 @@ class EditCustomer(UpdateView):
         return context
 
 
+@role_required(allowed_roles=["admin", "manager"])
 def member_delete(request, pk):
     member = get_object_or_404(Member, pk=pk)
 
-    # Check if user has permission to delete this member
+    # Simplified permission check
     if (
-        request.user.role != "admin"
+        request.user.role not in ["admin"]
         and request.user.branch not in member.branches.all()
     ):
         messages.error(request, "You don't have permission to delete this member.")

@@ -1,126 +1,75 @@
 from django import forms
 from .models import Inventory, StockTransaction
-from suppliers.models import Supplier
 
 
-class InventoryForm(forms.ModelForm):
+class InventoryCreateForm(forms.ModelForm):
+
     class Meta:
         model = Inventory
-        fields = [
-            "supplier",
-            "company_name",
-            "part_name",
-            "part_number",
-            "purchased_price",
-            "selling_price",
-            "discount",
-            "quantity",
-            "minimum_quantity",
-            "description",
-            "is_active",
+
+        exclude = [
+            "barcode",
+            "created_at",
+            "updated_at",
+            "created_by",
+            "available_quantity",
+            "branch",
         ]
+
         widgets = {
-            "company_name": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Company Name",
-                    "autofocus": True,
-                }
-            ),
-            "part_name": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Part Name",
-                }
-            ),
-            "part_number": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Part Number"}
-            ),
-            "description": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Description Of the product",
-                }
-            ),
-            "purchased_price": forms.NumberInput(
-                attrs={"class": "form-control", "placeholder": "Purchased Price"}
-            ),
-            "selling_price": forms.NumberInput(
-                attrs={"class": "form-control", "placeholder": "Selling Price"}
-            ),
-            "discount": forms.NumberInput(
-                attrs={"class": "form-control", "placeholder": "Discount"}
-            ),
-            "supplier": forms.Select(attrs={"class": "form-select"}),
-            "quantity": forms.NumberInput(
-                attrs={"class": "form-control", "placeholder": "Quantity"}
-            ),
-            "minimum_quantity": forms.NumberInput(
-                attrs={"class": "form-control", "placeholder": "Minimum Quantity"}
-            ),
+            "company_name": forms.TextInput(attrs={"class": "form-control"}),
+            "part_name": forms.TextInput(attrs={"class": "form-control"}),
+            "part_number": forms.TextInput(attrs={"class": "form-control"}),
+            "minimum_quantity": forms.NumberInput(attrs={"class": "form-control"}),
+            "uom": forms.Select(attrs={"class": "form-select"}),
+            "barcode": forms.TextInput(attrs={"class": "form-control"}),
+            "quantity": forms.NumberInput(attrs={"class": "form-control"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "purchased_price": forms.NumberInput(attrs={"class": "form-control"}),
+            "selling_price": forms.NumberInput(attrs={"class": "form-control"}),
+            "discount": forms.NumberInput(attrs={"class": "form-control"}),
+            "minimum_quantity": forms.NumberInput(attrs={"class": "form-control"}),
+            "gst": forms.NumberInput(attrs={"class": "form-control"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["supplier"].queryset = Supplier.objects.filter(is_active=True)
-        # Hide is_active on create
-        if not self.instance.pk:
-            self.fields.pop("is_active")
-            # self.fields["is_active"].widget = forms.HiddenInput()
 
-
-TRANSACTION_TYPE_CHOICES = [
-    ("purchase", "Purchase"),
-    ("sale", "Sale"),
-    ("adjustment", "Adjustment"),
-    ("return", "Return"),
-    ("damage", "Damage/Loss"),
-]
-
-
-class UpdateStockForm(forms.Form):
-    transaction_type = forms.ChoiceField(
-        choices=TRANSACTION_TYPE_CHOICES,
-        widget=forms.Select(attrs={"class": "form-select"}),
-        required=True,
-        label="Transaction Type",
-    )
-    quantity_change = forms.IntegerField(
-        widget=forms.NumberInput(
-            attrs={"class": "form-control", "placeholder": "+/- Quantity"}
-        ),
-        required=True,
-        label="Quantity Change",
-    )
-    reference_number = forms.CharField(
-        required=False,
-        widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "e.g., PO-123, SO-456"}
-        ),
-        label="Reference Number",
-    )
-    notes = forms.CharField(
-        required=False,
-        widget=forms.Textarea(
-            attrs={
-                "class": "form-control",
-                "rows": 3,
-                "placeholder": "Add any additional information about this transaction",
-            }
-        ),
-        label="Notes",
-    )
+        self.order_fields(
+            [
+                "company_name",
+                "part_name",
+                "part_number",
+                "minimum_quantity",
+                "quantity",
+                "uom",
+                "purchased_price",
+                "selling_price",
+                "discount",
+                "gst",
+                "notes",
+                "is_active",
+            ]
+        )
 
 
 class StockTransactionForm(forms.ModelForm):
+
     class Meta:
         model = StockTransaction
-        fields = ["transaction_type", "quantity_change", "reference_number", "notes"]
+        fields = ["transaction_type", "quantity", "reference_number", "notes"]
         widgets = {
             "transaction_type": forms.Select(attrs={"class": "form-select"}),
-            "quantity_change": forms.NumberInput(attrs={"class": "form-control"}),
+            "quantity": forms.NumberInput(attrs={"class": "form-control"}),
             "reference_number": forms.TextInput(attrs={"class": "form-control"}),
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove 'initial' from the dropdown choices
+        choices = [
+            c for c in self.fields["transaction_type"].choices if c[0] != "initial"
+        ]
+        self.fields["transaction_type"].choices = choices

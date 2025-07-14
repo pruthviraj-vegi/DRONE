@@ -31,4 +31,14 @@ urlpatterns = [
         views.update_item_api,
         name="update_item_api",
     ),
+    path(
+        "api/inventory-search/",
+        views.inventory_search_api,
+        name="inventory_search_api",
+    ),
+    path(
+        "api/session/<int:session_id>/add-item/",
+        views.add_item_to_session_api,
+        name="add_item_to_session_api",
+    ),
 ]

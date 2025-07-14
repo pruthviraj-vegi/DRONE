@@ -8,16 +8,21 @@ class InventoryAdmin(admin.ModelAdmin):
         "company_name",
         "part_name",
         "barcode",
-        "quantity",
+        "uom",
+        "purchased_price",
+        "selling_price",
+        "discount",
         "minimum_quantity",
-        "supplier",
+        "gst",
         "is_active",
         "created_at",
         "updated_at",
+        "created_by",
+        "branch",
     )
     search_fields = ("company_name", "part_name", "barcode")
-    list_filter = ("supplier", "is_active")
-    autocomplete_fields = ("supplier",)
+    list_filter = ("is_active", "gst")
+    autocomplete_fields = ("created_by", "branch")
 
 
 @admin.register(StockTransaction)
@@ -25,9 +30,7 @@ class StockTransactionAdmin(admin.ModelAdmin):
     list_display = (
         "inventory",
         "transaction_type",
-        "quantity_change",
-        "previous_quantity",
-        "new_quantity",
+        "quantity",
         "created_at",
         "created_by",
     )
@@ -36,5 +39,5 @@ class StockTransactionAdmin(admin.ModelAdmin):
         "inventory__barcode",
         "created_by__username",
     )
-    list_filter = ("transaction_type", "created_at", "inventory__supplier")
+    list_filter = ("transaction_type", "created_at")
     autocomplete_fields = ("inventory",)

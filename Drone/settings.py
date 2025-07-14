@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+CSRF_TRUSTED_ORIGINS = ["https://drone.clownbunny.in"]
+
 AUTH_USER_MODEL = "users.CustomUser"
 
 LOGIN_URL = "base:login"
@@ -49,8 +51,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "branches",
     "users",
+    "branches",
     "suppliers",
     "customers",
     "inventory",
@@ -59,6 +61,8 @@ INSTALLED_APPS = [
     "invoice",
     "dashboard",
     "base",
+    "report",
+    "quote",
     "widget_tweaks",
 ]
 
@@ -88,6 +92,9 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
+            "libraries": {
+                "custom_filters": "base.custom_filters",
+            },
         },
     },
 ]

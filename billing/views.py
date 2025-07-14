@@ -5,6 +5,8 @@ from inventoryManage.models import BranchInventory
 from django.contrib import messages
 from django.http import JsonResponse
 import json
+from django.views.decorators.http import require_GET, require_POST
+from django.db.models import Q
 
 # Create your views here.
 
@@ -28,7 +30,7 @@ def billing_session_detail(request, session_id):
     session = get_object_or_404(
         BillingSession, id=session_id, user=request.user, is_active=True
     )
-    items = session.items.select_related("inventory").all()
+    items = session.session_items.select_related("inventory").all()
     return render(
         request, "billing/session_detail.html", {"session": session, "items": items}
     )
@@ -55,20 +57,26 @@ def add_item_by_barcode(request, session_id):
             else:
                 inventory = Inventory.objects.get(barcode=barcode)
 
-            if inventory.quantity < quantity:
-                messages.error(request, "Not enough stock available.")
-            else:
-                item, created = BillingSessionItem.objects.get_or_create(
-                    session=session,
-                    inventory=inventory,
-                    defaults={"quantity": quantity, "price": inventory.selling_price},
-                )
-                if not created:
-                    item.quantity += quantity
-                    item.save()
-                messages.success(
-                    request, f"Added {quantity} x {inventory.part_name} to session."
-                )
+                # if 0 < quantity:
+                #     messages.error(request, "Not enough stock available.")
+                #     pass
+                # else:
+
+            item, created = BillingSessionItem.objects.get_or_create(
+                session=session,
+                inventory=inventory,
+                defaults={
+                    "quantity": quantity,
+                    "price": inventory.discounted_price,
+                },
+            )
+            if not created:
+                item.quantity += quantity
+                item.save()
+            messages.success(
+                request,
+                f"Added {quantity} x {inventory.part_name} to session.",
+            )
         except Inventory.DoesNotExist:
             messages.error(request, "Item with this barcode not found.")
     return redirect("billing:session_detail", session_id=session.id)
@@ -78,8 +86,9 @@ def update_items(request, session_id):
     session = get_object_or_404(
         BillingSession, id=session_id, user=request.user, is_active=True
     )
+    print(session.session_items.all())
     if request.method == "POST":
-        for item in session.items.all():
+        for item in session.session_items.all():
             quantity = request.POST.get(f"quantity_{item.id}")
             price = request.POST.get(f"price_{item.id}")
 
@@ -134,3 +143,54 @@ def update_item_api(request, item_id):
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+
+
+@require_GET
+def inventory_search_api(request):
+    q = request.GET.get("q", "").strip()
+    results = []
+    if q:
+        items = Inventory.objects.filter(
+            Q(item__part_name__icontains=q)
+            | Q(item__barcode__icontains=q)
+            | Q(item__company_name__icontains=q)
+        )[:20]
+        results = [
+            {
+                "id": item.id,
+                "part_name": item.part_name,
+                "barcode": item.barcode,
+                "stock": item.quantity,
+            }
+            for item in items
+        ]
+    return JsonResponse({"results": results})
+
+
+@require_POST
+def add_item_to_session_api(request, session_id):
+    session = get_object_or_404(
+        BillingSession, id=session_id, user=request.user, is_active=True
+    )
+    try:
+        data = json.loads(request.body)
+        inventory_id = data.get("inventory_id")
+        inventory = get_object_or_404(Inventory, id=inventory_id)
+        quantity = 1  # Default to 1
+
+        if inventory.quantity < quantity:
+            return JsonResponse(
+                {"status": "error", "message": "Not enough stock."}, status=400
+            )
+
+        item, created = BillingSessionItem.objects.get_or_create(
+            session=session,
+            inventory=inventory,
+            defaults={"quantity": quantity, "price": inventory.selling_price},
+        )
+        if not created:
+            item.quantity += quantity
+            item.save()
+        return JsonResponse({"status": "success"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)

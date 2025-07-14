@@ -23,4 +23,4 @@ class BranchInventoryTransferItemForm(forms.Form):
     inventory = forms.ModelChoiceField(
         queryset=Inventory.objects.filter(is_active=True), label="Inventory Item"
     )
-    quantity = forms.IntegerField(min_value=1, label="Quantity")
+    quantity = forms.DecimalField(min_value=1, label="Quantity")

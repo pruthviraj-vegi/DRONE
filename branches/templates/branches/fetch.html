@@ -1,0 +1,20 @@
+{% load custom_filters %}
+
+{% for branch in data %}
+  <tr>
+    <td>{{ branch.name }}</td>
+    <td>{{ branch.code }}</td>
+    <td>{{ branch.address }}</td>
+    <td>{{ branch.phone }}</td>
+    <td>{{ branch.email }}</td>
+    <td>
+      <span class="badge {{ branch.is_active|status_badge }}">{{ branch.is_active|yesno:'Active,Inactive' }}</span>
+    </td>
+    <td>
+      <div class="btn-group">
+        <a href="{% url 'branches:branch_edit' branch.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+        <a href="{% url 'branches:branch_delete' branch.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+      </div>
+    </td>
+  </tr>
+{% endfor %}

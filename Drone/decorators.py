@@ -1,5 +1,6 @@
 from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import user_passes_test
+from django.shortcuts import render
 
 
 def role_required(allowed_roles=[]):
@@ -7,7 +8,7 @@ def role_required(allowed_roles=[]):
         def wrapper(request, *args, **kwargs):
             if request.user.role in allowed_roles:
                 return view_func(request, *args, **kwargs)
-            return HttpResponseForbidden("You don't have permission.")
+            return render(request, "permission_denied.html", status=403)
 
         return wrapper
 

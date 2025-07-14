@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-from django.conf import settings
 from inventory.models import Inventory
 from branches.models import Branch
 from django.contrib.auth import get_user_model
@@ -35,12 +34,13 @@ class TransactionDetail(models.Model):
 
 class BranchInventory(models.Model):
     inventory = models.ForeignKey(
-        Inventory, on_delete=models.CASCADE, related_name="branch_assignments"
+        Inventory, on_delete=models.CASCADE, related_name="branch_inventory_inventory"
     )
     branch = models.ForeignKey(
         Branch, on_delete=models.CASCADE, related_name="inventory_assignments"
     )
-    quantity = models.IntegerField(default=0)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    available_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -60,9 +60,7 @@ class BranchInventoryTransaction(models.Model):
         max_length=20,
         choices=[("forward", "Forward"), ("update", "Update"), ("return", "Return")],
     )
-    quantity_change = models.IntegerField()
-    previous_quantity = models.IntegerField()
-    new_quantity = models.IntegerField()
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 

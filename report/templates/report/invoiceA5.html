@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+{% load static %} {% load custom_filters %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ details.customer.name }} - #INV-{{ details.id }}</title>
+    <style>
+      @page {
+        margin: 2mm;
+      }
+      @media print {
+        @page {
+          size: A5;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="{% static 'styles\inoviceA5.css' %}" />
+    <link rel="shortcut icon" type="image/ico" href="{% static 'images/favicon.ico' %}" />
+  </head>
+  <body>
+    <div class="invoice-container">
+      <div class="shop-title">
+        <div class="logo">
+          <img src="{% static 'images/logo.svg' %}" alt="image" />
+        </div>
+        <div>
+          <div class="shop-name">{{ shop_details.shopName }} Wayaau Agri Drones</div>
+          <p class="shop-address">Main Road, Naryanapur, Hunsagi, Karnataka - 577522</p>
+          <p class="text-bold">GST: 29sap7224</p>
+          <p class="text-bold">Ph No: 9845000000</p>
+        </div>
+      </div>
+      <div class="invoice_details">
+        <div class="invoice">
+          <p>
+            Invoice No : <span class="invoice-value">#{{ details.branch.code }}-{{ details.id }}</span>
+          </p>
+          <p>
+            Date : <span class="invoice-value">{{ details.created_at|date:'d-m-Y' }}</span>
+          </p>
+          <p>
+            Mode : <span class="invoice-value">{{ details.get_invoice_type_display }}</span>
+          </p>
+          <p>
+            Sold By : <span class="invoice-value">{{ details.sale_user.full_name }}</span>
+          </p>
+        </div>
+        <div class="buyer_details">
+          <h1>{{ details.customer.name }}</h1>
+          <p>{{ details.customer.address }}</p>
+        </div>
+      </div>
+      <div class="content-table">
+        <div class="table-logo">
+          <img src="{% static 'images/logo.svg' %}" alt="image" />
+        </div>
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Description</th>
+              <th>Qty</th>
+              <th>Uom</th>
+              <th>Rate</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for bill in values %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ bill.inventory.part_name }}</td>
+                <td>{{ bill.quantity }}</td>
+                <td>{{ bill.inventory.uom }}</td>
+                <td>{{ bill.price|currency_format }}</td>
+                <td>{{ bill.amount|currency_format }}</td>
+              </tr>
+            {% endfor %}
+
+            <tr class="empty-space">
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2">Total</td>
+              <td>{{ details.totalQty }}</td>
+              <td colspan="2"></td>
+              <td class="highlight">{{ details.totalAmount|currency_format }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="amounts-calculations">
+        <div class="tax-data">
+          <table class="tax-table">
+            <thead>
+              <tr>
+                <th>Tax %</th>
+                <th>Tax Value</th>
+                <th>Tax Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for gst, values in details.tax_values_by_gst.details.items %}
+                <tr>
+                  <td>{{ gst }} %</td>
+                  <td>{{ values.tax_value|currency_format }}</td>
+                  <td>{{ values.total_tax_value|currency_format }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <hr />
+          <div class="amount-words">
+            <div class="terms_title">* Rupee In words *</div>
+            <div>{{ details.totalAmount|numberToWords }}</div>
+          </div>
+        </div>
+        <div class="amounts-data">
+          <div>
+            <p>
+              Total Amount : <span>{{ details.totalAmount|currency_format }}</span>
+            </p>
+            {% if details.discountAmount > 0 %}
+              <p>
+                Discount : <span>- {{ details.discountAmount }}</span>
+              </p>
+            {% endif %}
+            {% if details.advance > 0 %}
+              <p>
+                Advance : <span>- {{ details.advance }}</span>
+              </p>
+            {% endif %}
+          </div>
+          <div>
+            <p class="highlight">
+              Total : <span>{{ details.totalAmount|currency_format }}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="terms-qrcode">
+        <div class="terms-conditions">
+          <h3 class="terms_title">Terms &amp; Conditions</h3>
+          <div class="terms_subject">
+            <p>1. All Subjects to The Shahapur Juridiction</p>
+            <p>2. Goods Once Sold Will Not be taken back</p>
+            <p>3. E. &amp; O.E</p>
+          </div>
+        </div>
+        <div class="qrcode">
+          <div class="barcode">
+            {% if qrcode %}
+              <img src="data:image/png;base64,{{ qrcode|b64encode }}" alt="QR Code" />
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="thank-you">
+        <h3>Thank You Please Visit Again</h3>
+        <p style="font-size: 8px">This is Computer Generated Invoice, Signature not Required</p>
+      </div>
+    </div>
+    <script>
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          window.close()
+        }
+        if (event.key === 'Enter') {
+          window.print()
+        }
+      })
+      window.addEventListener('afterprint', function () {
+        window.close()
+      })
+    </script>
+  </body>
+</html>

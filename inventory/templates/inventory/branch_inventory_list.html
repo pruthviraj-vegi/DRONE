@@ -33,23 +33,29 @@
                       <span class="badge {% if item.quantity <= 0 %}
                           
                           
+                          
                           bg-danger
+
 
 
                         {% elif item.quantity <= item.inventory.minimum_quantity %}
                           
                           
+                          
                           bg-warning
+
 
 
                         {% else %}
                           
                           
+                          
                           bg-success
 
 
+
                         {% endif %}">
-                        {{ item.quantity }}
+                        {{ item.available_quantity }}
                       </span>
                     </td>
                     <td>{{ item.inventory.selling_price }}</td>
@@ -57,11 +63,15 @@
                     <td>
                       <span class="badge {% if item.inventory.is_active %}
                           
+                          
                           bg-success
+
 
                         {% else %}
                           
+                          
                           bg-danger
+
 
                         {% endif %}">
                         {{ item.inventory.is_active|yesno:'Active,Inactive' }}

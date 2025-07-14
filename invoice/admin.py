@@ -10,6 +10,7 @@ class InvoiceAdmin(admin.ModelAdmin):
         "invoice_type",
         "sale_user",
         "total_amount",
+        "branch",
         "created_at",
         "updated_at",
     )
@@ -23,4 +24,4 @@ class InvoiceItemAdmin(admin.ModelAdmin):
     list_display = ("invoice", "inventory", "quantity", "price", "purchased_price")
     search_fields = ("invoice__id", "inventory__part_name")
     list_filter = ("inventory",)
-    autocomplete_fields = ("invoice", "inventory")
+    autocomplete_fields = ("invoice",)

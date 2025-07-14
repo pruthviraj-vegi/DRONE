@@ -10,7 +10,7 @@
     <div class="card">
       <div class="card-body">
         <div class="table-responsive">
-          <table class="table table-hover">
+          <table class="table table-hover" id="table__data">
             <thead>
               <tr>
                 <th>Transaction ID</th>
@@ -21,57 +21,16 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {% for tx in page_obj %}
-                <tr>
-                  <td>{{ tx.name }}</td>
-                  <td>{{ tx.from_branch.name }}</td>
-                  <td>{{ tx.to_branch.name }}</td>
-                  <td>{{ tx.created_at|date:'Y-m-d H:i' }}</td>
-                  <td>{{ tx.transfered_by }}</td>
-                  <td>
-                    <div class="btn-group">
-                      <a href="{% url 'inventoryManage:transaction_details' tx.id %}" class="btn btn-sm btn-outline-success" title="View Details"><i class="fas fa-boxes"></i></a>
-                    </div>
-                  </td>
-                </tr>
-              {% empty %}
-                <tr>
-                  <td colspan="9" class="text-center">No transfers found.</td>
-                </tr>
-              {% endfor %}
-            </tbody>
+            <tbody id="table_body"></tbody>
           </table>
         </div>
-
-        {% if page_obj.has_other_pages %}
-          <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-              {% if page_obj.has_previous %}
-                <li class="page-item">
-                  <a class="page-link" href="?page=1">&laquo; First</a>
-                </li>
-                <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                </li>
-              {% endif %}
-
-              <li class="page-item active">
-                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-              </li>
-
-              {% if page_obj.has_next %}
-                <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                </li>
-                <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
-                </li>
-              {% endif %}
-            </ul>
-          </nav>
-        {% endif %}
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    const search_url = "{% url 'inventoryManage:fetch_transactions' %}"
+  </script>
 {% endblock %}

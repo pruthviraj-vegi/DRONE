@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.validators import RegexValidator
 from branches.models import Branch
+from base.stringProcess import StringProcessor
 
 
 class Member(models.Model):
@@ -25,6 +26,7 @@ class Member(models.Model):
     address = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="active")
     branches = models.ManyToManyField(Branch, related_name="members")
+    notes = models.TextField(blank=True, help_text="Additional notes about the member")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     notes = models.TextField(blank=True, help_text="Additional notes about the member")
@@ -44,3 +46,9 @@ class Member(models.Model):
             "pending": "warning",
         }
         return status_classes.get(self.status, "secondary")
+
+    def save(self, *args, **kwargs):
+        self.name = StringProcessor(self.name).title
+        self.address = StringProcessor(self.address).title
+        self.notes = StringProcessor(self.notes).title
+        super().save(*args, **kwargs)

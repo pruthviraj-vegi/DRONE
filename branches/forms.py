@@ -39,3 +39,21 @@ class BranchForm(forms.ModelForm):
             self.fields["parent"].queryset = Branch.objects.all()
         self.fields["parent"].required = False
         self.fields["is_active"].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        branch_type = cleaned_data.get("type")
+        parent = cleaned_data.get("parent")
+
+        if branch_type == "main":
+            # Main branches should not have a parent
+            cleaned_data["parent"] = None
+        elif branch_type == "sub":
+            # Sub branches must have a parent, and it must be a main branch
+            if not parent:
+                self.add_error(
+                    "parent", "Sub branches must have a main branch as parent."
+                )
+            elif parent.type != "main":
+                self.add_error("parent", "Parent branch must be a main branch.")
+        return cleaned_data

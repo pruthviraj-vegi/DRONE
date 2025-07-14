@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from base.stringProcess import StringProcessor
 
 
 class Supplier(models.Model):
@@ -18,3 +19,10 @@ class Supplier(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.name = StringProcessor(self.name).title
+        self.address = StringProcessor(self.address).title
+        self.tax_number = StringProcessor(self.tax_number).uppercase
+        self.notes = StringProcessor(self.notes).title
+        super().save(*args, **kwargs)

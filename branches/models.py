@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from base.stringProcess import StringProcessor
 
 
 class Branch(models.Model):
@@ -31,3 +32,10 @@ class Branch(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.name = StringProcessor(self.name).title
+        self.code = StringProcessor(self.code).uppercase
+        self.email = StringProcessor(self.email).capitalized
+        self.address = StringProcessor(self.address).title
+        super().save(*args, **kwargs)

@@ -1,0 +1,14 @@
+{% for tx in data %}
+  <tr>
+    <td>{{ tx.name }}</td>
+    <td>{{ tx.from_branch.name }}</td>
+    <td>{{ tx.to_branch.name }}</td>
+    <td>{{ tx.created_at|date:'Y-m-d H:i' }}</td>
+    <td>{{ tx.transfered_by }}</td>
+    <td>
+      <div class="btn-group">
+        <a href="{% url 'inventoryManage:transaction_details' tx.id %}" class="btn btn-sm btn-outline-success" title="View Details"><i class="fas fa-boxes"></i></a>
+      </div>
+    </td>
+  </tr>
+{% endfor %}

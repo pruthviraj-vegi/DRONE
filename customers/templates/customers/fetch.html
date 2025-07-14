@@ -1,0 +1,28 @@
+{% load custom_filters %}
+
+{% for member in data %}
+  <tr>
+    <td>{{ member.name }}</td>
+    <td>{{ member.phone|phoneNo }}</td>
+    <td>
+      {% if member.branches.all %}
+        {% for branch in member.branches.all %}
+          {{ branch.name }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      {% else %}
+        -
+      {% endif %}
+    </td>
+    <td>
+      <span class="badge {{ member.status|status_badge }} ">{{ member.get_status_display }}</span>
+    </td>
+    <td>
+      <div class="btn-group">
+        <a href="{% url 'customers:member_edit' member.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+        {% if request.user|has_role:'admin' %}
+          <a href="{% url 'customers:member_delete' member.pk %}" class="btn btn-sm btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></a>
+        {% endif %}
+      </div>
+    </td>
+  </tr>
+{% endfor %}
