@@ -21,6 +21,7 @@
         <a href="{% url 'customers:member_edit' member.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
         {% if request.user|has_role:'admin' %}
           <a href="{% url 'customers:member_delete' member.pk %}" class="btn btn-sm btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></a>
+          <a href="{% url 'customers:member_invoice' member.pk %}" class="btn btn-sm btn-outline-info" title="Invoices"><i class="fas fa-file-invoice"></i></a>
         {% endif %}
       </div>
     </td>

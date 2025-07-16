@@ -9,4 +9,5 @@ urlpatterns = [
     path("create/", views.CreateCustomer.as_view(), name="member_create"),
     path("<int:pk>/edit/", views.EditCustomer.as_view(), name="member_edit"),
     path("<int:pk>/delete/", views.member_delete, name="member_delete"),
+    path("<int:pk>/invoice/", views.get_member_Inoices, name="member_invoice"),
 ]

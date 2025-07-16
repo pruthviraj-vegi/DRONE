@@ -1,21 +1,24 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Q
-
+from invoice.models import Invoice
 from Drone.decorators import role_required
 from .models import Member
 from .forms import MemberForm
 from django.views.generic import CreateView, UpdateView
 from django.urls import reverse_lazy
 from base.utility import get_basic_data
+from branches.models import Branch
+
 
 # Create your views here.
 
 
 def member_list(request):
-
+    branch_choices = Branch.objects.filter(is_active=True).values("name", "id")
     context = {
         "status_choices": Member.STATUS_CHOICES,
+        "branch_choices": branch_choices,
     }
 
     return render(request, "customers/main_page.html", context)
@@ -39,6 +42,11 @@ def fetch_members(request):
     status_filter = request.GET.get("status", "")
     if status_filter:
         query &= Q(status=status_filter)
+
+    # Branch filter
+    branch_filter = request.GET.get("branch", "")
+    if branch_filter:
+        query &= Q(branches=Branch.objects.get(id=branch_filter))
 
     queryset = Member.objects.filter(query).order_by(basic_data["sort_column"])
     queryset = queryset[basic_data["start"] : basic_data["start"] + basic_data["limit"]]
@@ -121,3 +129,11 @@ def member_delete(request, pk):
         return redirect("customers:member_list")
 
     return render(request, "customers/delete.html", {"member": member})
+
+
+def get_member_Inoices(request, pk):
+    member = get_object_or_404(Member, pk=pk)
+    invoices = Invoice.objects.filter(customer=member)
+    return render(
+        request, "customers/invoice.html", {"invoices": invoices, "member": member}
+    )
