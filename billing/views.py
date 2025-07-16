@@ -7,6 +7,7 @@ from django.http import JsonResponse
 import json
 from django.views.decorators.http import require_GET, require_POST
 from django.db.models import Q
+from decimal import Decimal
 
 # Create your views here.
 
@@ -82,31 +83,6 @@ def add_item_by_barcode(request, session_id):
     return redirect("billing:session_detail", session_id=session.id)
 
 
-def update_items(request, session_id):
-    session = get_object_or_404(
-        BillingSession, id=session_id, user=request.user, is_active=True
-    )
-    print(session.session_items.all())
-    if request.method == "POST":
-        for item in session.session_items.all():
-            quantity = request.POST.get(f"quantity_{item.id}")
-            price = request.POST.get(f"price_{item.id}")
-
-            if quantity and price:
-                try:
-                    item.quantity = int(quantity)
-                    item.price = float(price)
-                    item.save()
-                except (ValueError, TypeError):
-                    messages.error(
-                        request, f"Invalid values for item {item.inventory.part_name}"
-                    )
-                    continue
-
-        messages.success(request, "Items updated successfully")
-    return redirect("billing:session_detail", session_id=session.id)
-
-
 def delete_item(request, item_id):
     item = get_object_or_404(BillingSessionItem, id=item_id, session__user=request.user)
     if request.method == "POST":
@@ -124,8 +100,8 @@ def update_item_api(request, item_id):
             price = data.get("price")
 
             if quantity is not None and price is not None:
-                item.quantity = int(quantity)
-                item.price = float(price)
+                item.quantity = Decimal(quantity)
+                item.price = Decimal(price)
                 item.save()
 
                 return JsonResponse(
@@ -140,6 +116,7 @@ def update_item_api(request, item_id):
                     }
                 )
         except (ValueError, TypeError, json.JSONDecodeError) as e:
+            print(e)
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
@@ -151,46 +128,17 @@ def inventory_search_api(request):
     results = []
     if q:
         items = Inventory.objects.filter(
-            Q(item__part_name__icontains=q)
-            | Q(item__barcode__icontains=q)
-            | Q(item__company_name__icontains=q)
+            Q(part_name__icontains=q)
+            | Q(barcode__icontains=q)
+            | Q(company_name__icontains=q)
         )[:20]
         results = [
             {
                 "id": item.id,
                 "part_name": item.part_name,
                 "barcode": item.barcode,
-                "stock": item.quantity,
+                "stock": item.available_quantity,
             }
             for item in items
         ]
     return JsonResponse({"results": results})
-
-
-@require_POST
-def add_item_to_session_api(request, session_id):
-    session = get_object_or_404(
-        BillingSession, id=session_id, user=request.user, is_active=True
-    )
-    try:
-        data = json.loads(request.body)
-        inventory_id = data.get("inventory_id")
-        inventory = get_object_or_404(Inventory, id=inventory_id)
-        quantity = 1  # Default to 1
-
-        if inventory.quantity < quantity:
-            return JsonResponse(
-                {"status": "error", "message": "Not enough stock."}, status=400
-            )
-
-        item, created = BillingSessionItem.objects.get_or_create(
-            session=session,
-            inventory=inventory,
-            defaults={"quantity": quantity, "price": inventory.selling_price},
-        )
-        if not created:
-            item.quantity += quantity
-            item.save()
-        return JsonResponse({"status": "success"})
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=400)

@@ -17,14 +17,30 @@ class InventoryCreateForm(forms.ModelForm):
         ]
 
         widgets = {
-            "company_name": forms.TextInput(attrs={"class": "form-control"}),
-            "part_name": forms.TextInput(attrs={"class": "form-control"}),
-            "part_number": forms.TextInput(attrs={"class": "form-control"}),
-            "minimum_quantity": forms.NumberInput(attrs={"class": "form-control"}),
+            "company_name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Company Name",
+                    "autofocus": True,
+                }
+            ),
+            "part_name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Part Name"}
+            ),
+            "part_number": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Part Number"}
+            ),
+            "minimum_quantity": forms.NumberInput(
+                attrs={"class": "form-control", "placeholder": "Minimum Quantity"}
+            ),
             "uom": forms.Select(attrs={"class": "form-select"}),
-            "barcode": forms.TextInput(attrs={"class": "form-control"}),
+            "barcode": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Barcode"}
+            ),
             "quantity": forms.NumberInput(attrs={"class": "form-control"}),
-            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "notes": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3, "placeholder": "Notes"}
+            ),
             "purchased_price": forms.NumberInput(attrs={"class": "form-control"}),
             "selling_price": forms.NumberInput(attrs={"class": "form-control"}),
             "discount": forms.NumberInput(attrs={"class": "form-control"}),

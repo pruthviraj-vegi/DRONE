@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "base",
     "report",
     "quote",
+    "credits",
     "widget_tweaks",
 ]
 

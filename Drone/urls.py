@@ -16,5 +16,6 @@ urlpatterns = [
     path("dashboard/", include("dashboard.urls")),
     path("report/", include("report.urls")),
     path("quote/", include("quote.urls")),
+    path("credits/", include("credits.urls")),
     path("", include("base.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

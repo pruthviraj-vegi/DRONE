@@ -3,14 +3,11 @@ from invoice.models import Invoice, InvoiceItem
 from inventory.models import Inventory
 import io
 import base64
-import io
-import xlsxwriter
-import json
-import qrcode
 from barcode import Code128
-from barcode.base import Barcode
 from barcode.writer import SVGWriter
 from quote.models import QuoteSession
+from credits.views import individualDetails
+from customers.models import Member
 
 # Create your views here.
 
@@ -75,4 +72,42 @@ def quotation_a4(request, session_id):
             "session": session,
             "items": items,
         },
+    )
+
+
+def individual_credit_report(request, pk):
+    member = get_object_or_404(Member, pk=pk)
+    transactions, balance = individualDetails(pk)
+
+    val_balance = 0
+    total_credit = 0
+    total_debit = 0
+
+    for value in transactions:
+        if value["paid"] == "Purchased":
+            val_balance += value["amount"]
+            value["balance"] = val_balance
+            total_credit += value["amount"]
+        else:
+            val_balance -= value["amount"]
+            value["balance"] = val_balance
+            total_debit += value["amount"]
+
+    context = {
+        "member": member,
+        "data": transactions,
+        "balance": balance,
+        "total_credit": total_credit,
+        "total_debit": total_debit,
+        "user": request.user,
+    }
+    return render(request, "report/individual_report.html", context)
+
+
+def member_report(request, pk):
+    member = get_object_or_404(Member, pk=pk)
+    invoices = Invoice.objects.filter(customer=member)
+
+    return render(
+        request, "report/member_report.html", {"data": invoices, "member": member}
     )

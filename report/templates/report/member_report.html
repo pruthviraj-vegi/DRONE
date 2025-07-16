@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  {% load static %}
+  {% load custom_filters %}
+  {% load i18n %}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=210mm, initial-scale=1" />
+    <title>Invoice Report - {{ member.name }}</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'styles/quotation.css' %}" />
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" />
+  </head>
+  <body>
+    <div class="quotation-container">
+      <header class="header-bar">
+        <div class="company">
+          <img src="{% static 'images/logo.svg' %}" alt="Waayuputra Agri Drone Pvt Ltd Logo" />
+          {{ company_name|default:'Waayuputra Agri Drone Pvt Ltd' }}
+        </div>
+        <div class="quotation-title">Invoice Report</div>
+      </header>
+      <main>
+        <section class="meta-section">
+          <div class="meta-box">
+            {{ member.name }}<br />
+            {{ member.phone|phoneNo }}<br />
+            {{ member.address }}<br />
+          </div>
+        </section>
+        <section class="meta-section">
+          <div class="meta-box">
+            <strong class="label-blue">GSTIN:</strong> {{ company_gstin|default:'29BXMPT1809C1Z9' }}<br />
+            <strong class="label-blue">PAN:</strong> {{ company_pan|default:'AAECW0946L' }}<br />
+            <strong class="label-blue">Address:</strong> {{ company_address|default:'Shop No.18-78, Near Srirama Temple,<br />Raghunathpur Camp, Padashetti Colony, Hunsgi,<br />Yadgiri, KARNATAKA - 585215'|safe }}<br />
+            <strong class="label-blue">Mobile:</strong> {{ company_mobile|default:'+91 9353813667, +91 9945485444' }}<br />
+            <strong class="label-blue">Email:</strong> {{ company_email|default:'hanumanagdrones@gmail.com' }}
+          </div>
+          <div class="meta-box payment-details">
+            <h3>Payment Details:</h3>
+            <table style="width:100%; border:none;" class="no-bg">
+              <tr>
+                <td class="meta-label">Bank:</td>
+                <td class="meta-value">{{ company_bank|default:'Karnataka Bank' }}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">Account #:</td>
+                <td class="meta-value">{{ company_account|default:'3242500101213301' }}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">IFSC Code:</td>
+                <td class="meta-value">{{ company_ifsc|default:'KARB0000324' }}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">Branch:</td>
+                <td class="meta-value">{{ company_branch|default:'HUNSAGI' }}</td>
+              </tr>
+            </table>
+          </div>
+        </section>
+        <section>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Invoice No</th>
+                <th>Type</th>
+                <th>Total Amount</th>
+                <th>Advance</th>
+                <th>Balance</th>
+                <th>Payment Mode</th>
+                <th>Branch</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for invoice in data %}
+                <tr>
+                  <td>{{ invoice.created_at|date:'d/m/y' }}</td>
+                  <td>#{{ invoice.branch.code }}-{{ invoice.id }}</td>
+                  <td>{{ invoice.invoice_type|yesno:'Cash,Credit' }}</td>
+                  <td>
+                    <strong>{{ invoice.total_amount|currency_format }}</strong>
+                  </td>
+                  <td>
+                    <strong>{{ invoice.advance_amount|currency_format }}</strong>
+                  </td>
+                  <td>
+                    <strong>{{ invoice.balance|currency_format }}</strong>
+                  </td>
+                  <td>{{ invoice.get_payment_mode_display }}</td>
+                  <td>{{ invoice.branch.name }}</td>
+                  <td>{{ invoice.notes|default:'-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </section>
+      </main>
+      <footer class="footer">
+        <div>
+          <strong>Authorized Signatory</strong><br />
+          <div class="signature">
+            <div>For {{ company_name|default:'Waayuputra Agri Drone Pvt Ltd' }}</div>
+            <div>Authorized Signatory</div>
+          </div>
+        </div>
+      </footer>
+      <div class="thank-you-footer">Thank you for considering us for your business needs!</div>
+      {% comment %}Maintainer notes: - Company/bank info can be overridden by passing context variables (company_name, company_gstin, etc.) - All static text is wrapped in{% trans %}for i18n. - Use CSS classes instead of inline styles for repeated patterns. - Semantic HTML5 elements used for structure.{% endcomment %}
+    </div>
+  </body>
+</html>

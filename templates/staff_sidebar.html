@@ -1,0 +1,47 @@
+{% load static %}
+{% load custom_filters %}
+<ul class="sidebar-menu">
+  <div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Core</div>
+      <li>
+        <a href="{% url 'dashboard:dashboard' %}" class="nav-link {{ request.path|startWith:'/dashboard/' }}">
+          <i class="fas fa-tachometer-alt"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+    </div>
+  </div>
+  <div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Sales</div>
+      <li>
+        <a class="nav-link {{ request.path|startWith:'/members/' }}" href="{% url 'customers:member_list' %}"><i class="fas fa-users"></i> <span>Customers</span></a>
+      </li>
+      <li>
+        <a class="nav-link {{ request.path|startWith:'/invoice/' }}" href="{% url 'invoice:invoice_list' %}"><i class="fas fa-file-invoice"></i> <span>Invoices</span></a>
+      </li>
+      <li>
+        <a class="nav-link {{ request.path|startWith:'/billing/' }}" href="{% url 'billing:session_list' %}"><i class="fas fa-file-invoice-dollar"></i> <span>Billing Sessions</span></a>
+      </li>
+    </div>
+  </div>
+  <div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Inventory</div>
+      <li>
+        <a class="nav-link {{ request.path|startWith:'/inventory/' }}" href="{% url 'inventory:branch_inventory_list' %}"><i class="fas fa-box"></i> <span>Inventory</span></a>
+      </li>
+      {% comment %} <li>
+        <a class="nav-link {{ request.path|startWith:'/inventoryManage/' }}" href="{% url 'inventoryManage:branch_inventory_transfer_list' %}"><i class="fas fa-box"></i> <span>Inventory Transfer</span></a>
+      </li> {% endcomment %}
+    </div>
+  </div>
+
+  <div class="sidebar-section mt-auto">
+    <div class="sidebar-section-title">Account</div>
+    <li>
+      <a class="nav-link" href="{% url 'base:logout' %}"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a>
+    </li>
+  </div>
+</ul>

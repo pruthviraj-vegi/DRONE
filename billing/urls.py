@@ -17,11 +17,6 @@ urlpatterns = [
         name="add_item_by_barcode",
     ),
     path(
-        "sessions/<int:session_id>/update-items/",
-        views.update_items,
-        name="update_items",
-    ),
-    path(
         "sessions/<int:item_id>/delete-item/",
         views.delete_item,
         name="delete_item",
@@ -35,10 +30,5 @@ urlpatterns = [
         "api/inventory-search/",
         views.inventory_search_api,
         name="inventory_search_api",
-    ),
-    path(
-        "api/session/<int:session_id>/add-item/",
-        views.add_item_to_session_api,
-        name="add_item_to_session_api",
     ),
 ]

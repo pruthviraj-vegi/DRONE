@@ -124,9 +124,9 @@ def divideby(value, arg=None):
 
 @register.filter(name="status_badge")
 def status_badge(value):
-    if str(value).lower() in ["active", "success", "true"]:
+    if str(value).lower() in ["active", "success", "true", "accepted"]:
         return "badge bg-success"
-    elif str(value).lower() in ["inactive", "error", "danger", "false"]:
+    elif str(value).lower() in ["inactive", "error", "danger", "false", "rejected"]:
         return "badge bg-danger"
     elif str(value).lower() in ["pending", "warning"]:
         return "badge bg-warning"

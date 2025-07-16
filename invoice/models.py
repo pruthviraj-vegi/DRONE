@@ -47,6 +47,10 @@ class Invoice(models.Model):
         return f"Invoice #{self.id} - {self.customer.name}"
 
     @property
+    def balance(self):
+        return self.total_amount - self.advance_amount
+
+    @property
     def totalQty(self):
         invoices = self.invoice_items.all()
         amount = sum((invoice.quantity) for invoice in invoices)

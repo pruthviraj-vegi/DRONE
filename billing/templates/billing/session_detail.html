@@ -4,8 +4,8 @@
 {% block content %}
   <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
+      <a href="{% url 'billing:session_list' %}" class="btn btn-secondary" >Back to Sessions</a>
       <h1 class="h3">Billing Session: {{ session.name }}</h1>
-      <a href="{% url 'billing:session_list' %}" class="btn btn-secondary">Back to Sessions</a>
     </div>
 
     <!-- Barcode Scanner Form -->
@@ -111,7 +111,6 @@
       <a href="{% url 'invoice:select_details' session.id %}" class="btn btn-primary">Submit & Create Invoice</a>
     </div>
   </div>
-
   <script>
     // Auto-focus barcode input and handle form submission
     document.addEventListener('DOMContentLoaded', function () {
@@ -161,7 +160,10 @@
           .then((data) => {
             if (data.status === 'success') {
               const row = document.querySelector(`[data-item-id="${itemId}"]`).closest('tr')
-              row.querySelector('.item-total').textContent = data.item.amount.toFixed(2)
+              row.querySelector('.item-total').textContent = data.item.amount.toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })
               // Refocus on barcode scanner after successful update
               barcodeInput.focus()
             } else {
@@ -169,7 +171,7 @@
             }
           })
           .catch((error) => console.error('Error:', error))
-      }, 500) // Wait 500ms after last change before making API call
+      }, 1000) // Wait 500ms after last change before making API call
     
       // Add event listeners for quantity and price inputs
       document.querySelectorAll('.quantity-input, .price-input').forEach((input) => {
@@ -178,11 +180,6 @@
           const row = this.closest('tr')
           const quantity = row.querySelector('.quantity-input').value
           const price = row.querySelector('.price-input').value
-    
-          // Update total immediately for better UX
-          const total = (parseFloat(quantity) || 0) * (parseFloat(price) || 0)
-          row.querySelector('.item-total').textContent = total.toFixed(2)
-    
           // Send update to server
           updateItem(itemId, quantity, price)
         })
@@ -207,12 +204,12 @@
         })
       })
     })
-
+  
     // --- Inventory Search Modal AJAX ---
     const inventorySearchInput = document.getElementById('inventory-search-input');
     const inventorySearchResults = document.getElementById('inventory-search-results').querySelector('tbody');
     const sessionId = '{{ session.id }}';
-
+  
     function renderInventoryResults(items) {
       inventorySearchResults.innerHTML = '';
       if (items.length === 0) {
@@ -225,12 +222,12 @@
           <td>${item.part_name}</td>
           <td>${item.barcode}</td>
           <td>${item.stock}</td>
-          <td><button class="btn btn-sm btn-primary add-inventory-item" data-id="${item.id}">Add</button></td>
+          <td><button class="btn btn-sm btn-primary add-inventory-item"  data-barcode="${item.barcode}" >Add</button></td>
         `;
         inventorySearchResults.appendChild(row);
       });
     }
-
+  
     let searchTimeout = null;
     inventorySearchInput.addEventListener('input', function() {
       const query = this.value.trim();
@@ -248,42 +245,34 @@
           });
       }, 300);
     });
-
+  
     // Delegate click for dynamically added buttons
     inventorySearchResults.addEventListener('click', function(e) {
       if (e.target.classList.contains('add-inventory-item')) {
-        const inventoryId = e.target.getAttribute('data-id');
-        fetch(`/billing/api/session/${sessionId}/add-item/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-          },
-          body: JSON.stringify({ inventory_id: inventoryId })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 'success') {
-            // Optionally, reload the page or update the items table dynamically
-            location.reload();
-          } else {
-            alert(data.message || 'Failed to add item.');
-          }
-        })
-        .catch(() => alert('Error adding item.'));
+        const barcode = e.target.getAttribute('data-barcode');
+        const barcodeInput = document.getElementById('barcode')
+        barcodeInput.value = barcode
+        barcodeInput.closest('form').submit()
       }
     });
+  
+    // Add this once, outside the keydown handler
+    document.getElementById("inventorySearchModal").addEventListener('shown.bs.modal', function () {
+      inventorySearchInput.focus();
+    });
 
-    // Open inventory search modal on F10 key
+    // Then in your F10 handler, just show/hide the modal:
     document.addEventListener('keydown', function(e) {
-      // F10 key code is 121
       if (e.key === 'F10' || e.keyCode === 121) {
         e.preventDefault();
-        const modal = new bootstrap.Modal(
-          document.getElementById("inventorySearchModal")
-        );
-        modal.show();
-        inventorySearchInput.focus();
+        const modalEl = document.getElementById("inventorySearchModal");
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl.classList.contains('show')) {
+          modal.hide();
+        } else {
+          modal.show();
+          // Remove inventorySearchInput.focus() from here
+        }
       }
     });
   </script>
