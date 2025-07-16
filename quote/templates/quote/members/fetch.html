@@ -1,0 +1,15 @@
+{% load custom_filters %}
+{% for member in data %}
+  <tr>
+    <td>{{ member.name }}</td>
+    <td>{{ member.phone|phoneNo }}</td>
+    <td>{{ member.address }}</td>
+    <td>{{ member.created_at|date:'Y-m-d H:i' }}</td>
+    <td>
+      <div class="btn-group">
+        <a href="{% url 'quote:member_update' member.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+        <a href="#" class="btn btn-sm btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></a>
+      </div>
+    </td>
+  </tr>
+{% endfor %}

@@ -8,9 +8,19 @@ class QuoteMemberForm(forms.ModelForm):
         model = QuoteMember
         fields = ["name", "phone", "address"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control"}),
-            "phone": forms.TextInput(attrs={"class": "form-control"}),
-            "address": forms.TextInput(attrs={"class": "form-control"}),
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Name",
+                    "autofocus": True,
+                }
+            ),
+            "phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Phone"}
+            ),
+            "address": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Address"}
+            ),
         }
 
 
@@ -19,10 +29,22 @@ class QuoteInventoryForm(forms.ModelForm):
         model = QuoteInventory
         fields = ["name", "price", "discount", "tax", "status"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control"}),
-            "price": forms.NumberInput(attrs={"class": "form-control"}),
-            "discount": forms.NumberInput(attrs={"class": "form-control"}),
-            "tax": forms.NumberInput(attrs={"class": "form-control"}),
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Name",
+                    "autofocus": True,
+                }
+            ),
+            "price": forms.NumberInput(
+                attrs={"class": "form-control", "placeholder": "Price"}
+            ),
+            "discount": forms.NumberInput(
+                attrs={"class": "form-control", "placeholder": "Discount"}
+            ),
+            "tax": forms.NumberInput(
+                attrs={"class": "form-control", "placeholder": "Tax"}
+            ),
             "status": forms.Select(attrs={"class": "form-select"}),
         }
 
@@ -40,10 +62,6 @@ class QuoteSessionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if not show_status:
             self.fields.pop("status")
-
-    def save(self, commit=True):
-        self.instance.status = "processing"
-        return super().save(commit)
 
 
 class QuoteItemAddForm(forms.Form):

@@ -1,0 +1,22 @@
+{% load custom_filters %}
+{% for session in data %}
+  <tr>
+    <td>
+      <div>{{ session.customer.name }}</div>
+      <small class="text-muted">{{ session.customer.phone }}</small>
+    </td>
+    <td>{{ session.customer.address }}</td>
+    <td>{{ session.total_amount|currency_format }}</td>
+    <td>
+      <span class="badge {{ session.status|status_badge }}">{{ session.get_status_display }}</span>
+    </td>
+    <td>{{ session.created_at|date:'Y-m-d H:i' }}</td>
+    <td>
+      <div class="btn-group">
+        <a href="{% url 'quote:session_detail' session.pk %}" class="btn btn-sm btn-outline-primary" title="View"><i class="fas fa-eye"></i></a>
+        <a href="{% url 'quote:update_quote_session' session.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+        {% comment %} <a href="#" class="btn btn-sm btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></a> {% endcomment %}
+      </div>
+    </td>
+  </tr>
+{% endfor %}
