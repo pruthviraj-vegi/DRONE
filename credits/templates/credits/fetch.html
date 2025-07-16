@@ -1,0 +1,15 @@
+{% load custom_filters %} {% for credit in data %}
+  <tr>
+    <td>{{ credit.name }}</td>
+    <td>{{ credit.address }}</td>
+    <td>{{ credit.phone|phoneNo }}</td>
+    <td>{{ credit.credit|currency_format }}</td>
+    <td>{{ credit.debit|currency_format }}</td>
+    <td>{{ credit.balance|currency_format }}</td>
+    <td>
+      <div class="btn-group">
+        <a href="{% url 'credits:credit_details' credit.id %}" class="btn btn-sm btn-outline-primary" title="Edit Item"><i class="fas fa-edit"></i></a>
+      </div>
+    </td>
+  </tr>
+{% endfor %}

@@ -1,0 +1,35 @@
+{% load custom_filters %} {% for payment in data %}
+  <tr>
+    <td>{{ payment.paid }}</td>
+    <td>
+      <strong>{{ payment.amount|currency_format }}</strong>
+    </td>
+    <td>{{ payment.notes }}</td>
+    <td>{{ payment.created_at|date }}</td>
+    <td>
+      <div class="row">
+        {% if payment.model == 'transaction' %}
+          <div class="col">
+            <a href="{% url 'credits:edit_credit_individual' payment.id %}">
+              <i class="far fa-edit me-2"></i>
+              Edit
+            </a>
+          </div>
+          <div class="col">
+            <a href="{% url 'credits:delete_credit_individual' payment.id %}" class="text-danger">
+              <i class="far fa-trash-alt me-2"></i>
+              Delete
+            </a>
+          </div>
+        {% else %}
+          <div class="col">
+            <a href="{% url 'invoice:invoice_detail' payment.id %}" target="_blank" rel="noopener noreferrer" class="text-muted">
+              <i class="far fa-copy me-2"></i>
+              Open
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </td>
+  </tr>
+{% endfor %}

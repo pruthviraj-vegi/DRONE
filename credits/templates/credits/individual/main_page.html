@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}
+  Credit Details - {{ members.name }}
+{% endblock %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <a href="{% url 'credits:credit_page' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Credits</a>
+      <h1 class="h3">Credit Details: {{ members.name }}</h1>
+      <div class="d-flex gap-2">
+        <a href="{% url 'report:individual_credit_report' members.id %}" target="_blank" class="btn btn-primary"><i class="fas fa-file-invoice"></i> Credit Report</a>
+        <a href="{% url 'credits:create_credit_individual' members.id %}" class="btn btn-primary"><i class="fas fa-plus"></i> Add Credit</a>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3">
+            <strong>Name:</strong> {{ members.name }}
+          </div>
+          <div class="col-md-3">
+            <strong>Address:</strong> {{ members.address }}
+          </div>
+          <div class="col-md-3">
+            <strong>Phone:</strong> {{ members.phone|phoneNo }}
+          </div>
+          <div class="col-md-3">
+            <strong>Balance: {{ balance|currency_format }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover" id="table__data">
+            <thead>
+              <tr>
+                <th>Paid / Purchased</th>
+                <th>Amount</th>
+                <th>Remarks</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="table_body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    const search_url = "{% url 'credits:fetch_individual_credits' members.id %}"
+    // You can add AJAX logic here to populate the table_body
+  </script>
+{% endblock %}

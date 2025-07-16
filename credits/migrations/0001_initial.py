@@ -11,25 +11,61 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('customers', '0001_initial'),
+        ("customers", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Credit',
+            name="Credit",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('paid', models.BooleanField(choices=[(True, 'Paid'), (False, 'Purchased')], default=True)),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('notes', models.TextField(blank=True, help_text='Additional notes about the credit')),
-                ('created', models.DateTimeField(default=django.utils.timezone.now, null=True)),
-                ('update', models.DateTimeField(auto_now=True)),
-                ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='credits_created_by', to=settings.AUTH_USER_MODEL)),
-                ('member', models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='credits', to='customers.member')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "paid",
+                    models.BooleanField(
+                        choices=[(True, "Paid"), (False, "Purchased")], default=True
+                    ),
+                ),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "notes",
+                    models.TextField(
+                        blank=True, help_text="Additional notes about the credit"
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(default=django.utils.timezone.now, null=True),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="credits_created_by",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "member",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="credits",
+                        to="customers.member",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created'],
+                "ordering": ["-created_at"],
             },
         ),
     ]
