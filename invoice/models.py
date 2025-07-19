@@ -6,6 +6,7 @@ from customers.models import Member
 from users.models import CustomUser
 from inventory.models import Inventory
 from base.stringProcess import StringProcessor
+from django.db.models import Sum, ExpressionWrapper, F, DecimalField
 
 # Create your models here.
 
@@ -52,15 +53,20 @@ class Invoice(models.Model):
 
     @property
     def totalQty(self):
-        invoices = self.invoice_items.all()
-        amount = sum((invoice.quantity) for invoice in invoices)
-        return round(amount)
+        total = self.invoice_items.aggregate(total=Sum("quantity"))["total"]
+        return total or Decimal("0.00")
 
     @property
     def totalAmount(self):
-        invoices = self.invoice_items.all()
-        amount = sum((invoice.amount) for invoice in invoices)
-        return round(amount)
+        total = self.invoice_items.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F("quantity") * F("price"),
+                    output_field=DecimalField(max_digits=20, decimal_places=2),
+                )
+            )
+        )["total"]
+        return total or 0
 
     @property
     def tax_values_by_gst(self):

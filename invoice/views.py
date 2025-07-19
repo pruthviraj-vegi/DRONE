@@ -9,39 +9,46 @@ from django.urls import reverse_lazy
 from django.views.generic import UpdateView, View
 from django.db.models import Q
 from base.utility import get_basic_data
+from django.db import transaction
 
 # Create your views here.
 
 
 def select_details(request, session_id):
-    session = get_object_or_404(BillingSession, id=session_id, is_active=True)
+    session = get_object_or_404(
+        BillingSession, id=session_id, is_active=True, user=request.user
+    )
     items = session.session_items.all()
-    total_amount = sum(item.amount for item in items)
-    form = InvoiceForm(initial={"total_amount": total_amount}, user=request.user)
+    total_amount = session.total_amount
 
     if total_amount <= 0:
         messages.error(request, "Total amount must be greater than 0")
         return redirect("billing:session_detail", session_id=session.id)
 
-    if request.method == "POST":
-        form = InvoiceForm(request.POST, user=request.user)
-        if form.is_valid():
-            invoice = form.save(commit=False)
-            invoice.sale_user = request.user
-            invoice.branch = request.user.branch
-            invoice.save()
+    form = InvoiceForm(initial={"total_amount": total_amount}, user=request.user)
 
-        for item in items:
-            InvoiceItem.objects.create(
-                invoice=invoice,
-                inventory=item.inventory,
-                purchased_price=item.inventory.purchased_price,
-                quantity=item.quantity,
-                price=item.price,
-            )
-        session.delete()
-        messages.success(request, "Invoice created and session closed.")
-        return redirect("billing:session_list")
+    with transaction.atomic():
+        if request.method == "POST":
+            form = InvoiceForm(request.POST, user=request.user)
+            if form.is_valid():
+                invoice = form.save(commit=False)
+                invoice.sale_user = request.user
+                invoice.branch = request.user.branch
+                invoice.save()
+
+                for item in items:
+                    InvoiceItem.objects.create(
+                        invoice=invoice,
+                        inventory=item.inventory,
+                        purchased_price=item.inventory.purchased_price,
+                        quantity=item.quantity,
+                        price=item.price,
+                    )
+                session.delete()
+                messages.success(request, "Invoice created and session closed.")
+                return redirect("billing:session_list")
+            else:
+                messages.error(request, "Invalid form data")
 
     return render(
         request,

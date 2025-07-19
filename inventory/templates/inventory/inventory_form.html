@@ -47,3 +47,16 @@
     </div>
   </div>
 {% endblock %}
+
+{% block extra_js %}
+  <script>
+    $(function () {
+      var company_name = $('#id_company_name')
+      var part_name = $('#id_part_name')
+      var company_name_url = "{% url 'base:suggestion_company_name' %}"
+    
+      AutoComplete(company_name, company_name_url, 'company_name')
+      AutoComplete(part_name, company_name_url, 'part_name')
+    })
+  </script>
+{% endblock %}

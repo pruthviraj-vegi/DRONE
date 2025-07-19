@@ -85,3 +85,14 @@
     </div>
   </div>
 {% endblock %}
+
+{% block extra_js %}
+  <script>
+    $(function () {
+      var address = $('#id_address')
+      var address_url = "{% url 'base:suggestion_address' %}"
+    
+      AutoComplete(address, address_url)
+    })
+  </script>
+{% endblock %}

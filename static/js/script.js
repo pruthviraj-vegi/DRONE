@@ -56,3 +56,24 @@ function CalledToast(type, message) {
         title: message,
     });
 }
+
+function AutoComplete(element, url, search_name) {
+    if (search_name) {
+        url = url + "?search_name=" + search_name
+    } else {
+        url = url
+    }
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            element.autocomplete({
+                source: data,
+                select: function (event, ui) {
+                    element.val(ui.item.value);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching address list:', error);
+        });
+}

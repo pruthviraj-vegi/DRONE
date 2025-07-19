@@ -41,8 +41,22 @@ class InvoiceForm(forms.ModelForm):
                     status="active",
                 )
 
-    def clean_amount(self):
-        amount = self.cleaned_data["total_amount"]
-        if amount <= 0:
+    def clean(self):
+        cleaned_data = super().clean()
+        advance_amount = cleaned_data.get("advance_amount")
+        total_amount = cleaned_data.get("total_amount")
+        invoice_type = cleaned_data.get("invoice_type")
+
+        if total_amount <= 0:
             raise forms.ValidationError("Amount must be greater than 0")
-        return amount
+
+        # Only validate if all fields are present and valid
+        if advance_amount is not None and total_amount is not None:
+            if invoice_type:
+                cleaned_data["advance_amount"] = 0
+            else:
+                if advance_amount > total_amount:
+                    raise forms.ValidationError(
+                        "Advance amount cannot be greater than total amount"
+                    )
+        return cleaned_data
