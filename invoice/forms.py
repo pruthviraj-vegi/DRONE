@@ -1,6 +1,7 @@
 from django import forms
 from customers.models import Member
 from invoice.models import Invoice
+from decimal import Decimal
 
 
 class InvoiceForm(forms.ModelForm):
@@ -53,7 +54,7 @@ class InvoiceForm(forms.ModelForm):
         # Only validate if all fields are present and valid
         if advance_amount is not None and total_amount is not None:
             if invoice_type:
-                cleaned_data["advance_amount"] = 0
+                cleaned_data["advance_amount"] = Decimal(0)
             else:
                 if advance_amount > total_amount:
                     raise forms.ValidationError(

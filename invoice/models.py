@@ -35,7 +35,7 @@ class Invoice(models.Model):
     payment_mode = models.CharField(
         max_length=100, choices=PAYMENT_MODE_CHOICES, default="cash"
     )
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     advance_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     branch = models.ForeignKey(
