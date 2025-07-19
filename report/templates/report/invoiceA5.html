@@ -128,20 +128,15 @@
             <p>
               Total Amount : <span>{{ details.totalAmount|currency_format }}</span>
             </p>
-            {% if details.discountAmount > 0 %}
+            {% if details.invoice_type == False %}
               <p>
-                Discount : <span>- {{ details.discountAmount }}</span>
-              </p>
-            {% endif %}
-            {% if details.advance > 0 %}
-              <p>
-                Advance : <span>- {{ details.advance }}</span>
+                Advance : <span>- {{ details.advance_amount|currency_format }}</span>
               </p>
             {% endif %}
           </div>
           <div>
             <p class="highlight">
-              Total : <span>{{ details.totalAmount|currency_format }}</span>
+              Total : <span>{{ details.balance|currency_format }}</span>
             </p>
           </div>
         </div>

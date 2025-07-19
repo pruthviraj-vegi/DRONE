@@ -29,6 +29,14 @@
             <p>
               <strong>Total Amount:</strong> {{ invoice.total_amount|currency_format }}
             </p>
+            {% if invoice.invoice_type == False %}
+              <p>
+                <strong>Advance Amount:</strong> {{ invoice.advance_amount|currency_format }}
+              </p>
+              <p>
+                <strong>Balance Amount:</strong> {{ invoice.balance|currency_format }}
+              </p>
+            {% endif %}
             <p>
               <strong>Sale User:</strong> {{ invoice.sale_user.full_name }}
             </p>

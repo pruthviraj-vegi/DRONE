@@ -135,6 +135,7 @@ def inventory_search_api(request):
         results = [
             {
                 "id": item.id,
+                "company_name": item.company_name,
                 "part_name": item.part_name,
                 "barcode": item.barcode,
                 "stock": item.available_quantity,
