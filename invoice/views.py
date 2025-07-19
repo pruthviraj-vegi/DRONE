@@ -19,9 +19,9 @@ def select_details(request, session_id):
         BillingSession, id=session_id, is_active=True, user=request.user
     )
     items = session.session_items.all()
-    total_amount = session.total_amount
+    total_amount = round(session.total_amount, 2)
 
-    if total_amount <= 0:
+    if int(total_amount) <= 0:
         messages.error(request, "Total amount must be greater than 0")
         return redirect("billing:session_detail", session_id=session.id)
 
