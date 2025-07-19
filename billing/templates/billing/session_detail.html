@@ -46,7 +46,8 @@
               <table class="table table-hover" id="inventory-search-results">
                 <thead>
                   <tr>
-                    <th>Name</th>
+                    <th>Company Name</th>
+                    <th>Part Name</th>
                     <th>Barcode</th>
                     <th>Stock</th>
                     <th>Action</th>
@@ -219,9 +220,10 @@
       items.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
+          <td>${item.company_name}</td>
           <td>${item.part_name}</td>
           <td>${item.barcode}</td>
-          <td>${item.stock}</td>
+          <td>${item.available_quantity}</td>
           <td><button class="btn btn-sm btn-primary add-inventory-item"  data-barcode="${item.barcode}" >Add</button></td>
         `;
         inventorySearchResults.appendChild(row);

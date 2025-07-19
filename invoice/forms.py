@@ -47,7 +47,7 @@ class InvoiceForm(forms.ModelForm):
         total_amount = cleaned_data.get("total_amount")
         invoice_type = cleaned_data.get("invoice_type")
 
-        if total_amount <= 0:
+        if int(total_amount) <= 0:
             raise forms.ValidationError("Amount must be greater than 0")
 
         # Only validate if all fields are present and valid
