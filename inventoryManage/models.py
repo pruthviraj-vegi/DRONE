@@ -3,6 +3,7 @@ from django.utils import timezone
 from inventory.models import Inventory
 from branches.models import Branch
 from django.contrib.auth import get_user_model
+from django.db.models import Sum
 
 # Create your models here.
 
@@ -46,6 +47,34 @@ class BranchInventory(models.Model):
 
     def __str__(self):
         return f"{self.inventory.part_name} - {self.branch.name}"
+
+    def actual_quantity(self):
+        """
+        Calculate actual available quantity by subtracting session items from available_quantity
+        """
+        # Get total quantity from active billing sessions for this inventory and branch
+        session_items_total = (
+            self.inventory.billing_session_items.filter(
+                session__is_active=True, session__user__branch=self.branch
+            ).aggregate(total=Sum("quantity"))["total"]
+            or 0
+        )
+
+        # Actual available = available_quantity - session_items_total
+        actual_available = self.available_quantity - session_items_total
+        return max(actual_available, 0)  # Ensure we don't return negative values
+
+    def is_quantity_available(self, requested_quantity, exclude_session_item=None):
+        """
+        Check if requested quantity is available, optionally excluding a specific session item
+        """
+        actual_available = self.actual_quantity()
+
+        # If excluding a specific session item, add its quantity back to available
+        if exclude_session_item:
+            actual_available += exclude_session_item.quantity
+
+        return actual_available >= requested_quantity
 
 
 class BranchInventoryTransaction(models.Model):

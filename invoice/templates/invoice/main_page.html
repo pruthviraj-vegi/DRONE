@@ -14,11 +14,26 @@
     <div class="card mb-4">
       <div class="card-body">
         <form method="get" class="row g-3 align-items-center" action="" id="search-form">
-          <div class="col-md">
+          <div class="col-md-9">
             <div class="input-group">
               <span class="input-group-text"><i class="fas fa-search"></i></span>
               <input type="search" name="search" class="form-control" placeholder="Search by Invoice ID, Customer Name, or Phone..." value="{{ search_query }}" />
             </div>
+          </div>
+          <div class="col-md-1">
+            <select name="invoice_type" class="form-select">
+              <option value="">All Status</option>
+              <option value="True">Cash</option>
+              <option value="False">Credit</option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <select name="branch_name" class="form-select">
+              <option value="">All Branches</option>
+              {% for branch in branchs %}
+                <option value="{{ branch }}">{{ branch }}</option>
+              {% endfor %}
+            </select>
           </div>
           <div class="col-md-auto">
             <button type="submit" class="btn btn-primary">Search</button>

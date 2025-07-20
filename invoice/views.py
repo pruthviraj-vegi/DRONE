@@ -10,6 +10,7 @@ from django.views.generic import UpdateView, View
 from django.db.models import Q
 from base.utility import get_basic_data
 from django.db import transaction
+from branches.models import Branch
 
 # Create your views here.
 
@@ -61,7 +62,9 @@ def select_details(request, session_id):
 
 def invoice_list(request):
     template_name = "invoice/main_page.html"
-    return render(request, template_name)
+    branch_list = Branch.objects.all().values_list("name", flat=True)
+
+    return render(request, template_name, {"branchs": branch_list})
 
 
 def fetch_invoice(request):
@@ -77,6 +80,14 @@ def fetch_invoice(request):
         q_obj |= Q(id__icontains=search_query)
         q_obj |= Q(customer__name__icontains=search_query)
         q_obj |= Q(customer__phone__icontains=search_query)
+
+    branch_name = request.GET.get("branch_name", "")
+    if branch_name:
+        q_obj &= Q(branch__name=branch_name)
+
+    invoice_type = request.GET.get("invoice_type", "")
+    if invoice_type:
+        q_obj &= Q(invoice_type=invoice_type)
 
     queryset = (
         Invoice.objects.filter(q_obj)

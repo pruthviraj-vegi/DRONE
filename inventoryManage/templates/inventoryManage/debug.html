@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container mt-4">
+    <h2>Inventory Debug Information</h2>
+
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5>User Branch Information</h5>
+      </div>
+      <div class="card-body">
+        <p>
+          <strong>Branch:</strong> {{ user_branch.name }} (ID: {{ user_branch.id }})
+        </p>
+        <p>
+          <strong>Branch Code:</strong> {{ user_branch.code }}
+        </p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5>BranchInventory Records ({{ branch_inventory_count }})</h5>
+          </div>
+          <div class="card-body">
+            {% if branch_inventories %}
+              <ul class="list-group">
+                {% for bi in branch_inventories %}
+                  <li class="list-group-item">
+                    <strong>{{ bi.inventory.part_name }}</strong><br />
+                    Company: {{ bi.inventory.company_name }}<br />
+                    Quantity: {{ bi.quantity }}<br />
+                    Available: {{ bi.available_quantity }}<br />
+                    Actual: {{ bi.actual_quantity }}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-muted">No BranchInventory records found for this branch.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5>Direct Inventory Records ({{ direct_inventory_count }})</h5>
+          </div>
+          <div class="card-body">
+            {% if direct_inventories %}
+              <ul class="list-group">
+                {% for inv in direct_inventories %}
+                  <li class="list-group-item">
+                    <strong>{{ inv.part_name }}</strong><br />
+                    Company: {{ inv.company_name }}<br />
+                    Barcode: {{ inv.barcode }}<br />
+                    Available: {{ inv.available_quantity }}<br />
+                    Branch: {{ inv.branch.name }}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-muted">No direct Inventory records found for this branch.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <a href="{% url 'inventoryManage:branch_inventory_transfer' %}" class="btn btn-primary">Back to Transfer Form</a>
+    </div>
+  </div>
+{% endblock %}

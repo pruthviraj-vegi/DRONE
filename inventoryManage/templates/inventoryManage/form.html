@@ -16,30 +16,74 @@
         <thead>
           <tr>
             <th>Inventory Item</th>
+            <th>Available Stock</th>
             <th>Quantity</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           {% for item_form in formset %}
-            <tr>
-              <td>{{ item_form.inventory }}</td>
-              <td>{{ item_form.quantity }}</td>
+            <tr class="inventory-row">
+              <td>
+                {{ item_form.inventory|add_class:'form-select inventory-select' }}
+                <div class="inventory-info" style="display: none;">
+                  <small class="text-muted">
+                    <strong>Company:</strong> <span class="company-name"></span><br />
+                    <strong>Part:</strong> <span class="part-name"></span><br />
+                    <strong>Barcode:</strong> <span class="barcode"></span>
+                  </small>
+                </div>
+              </td>
+              <td>
+                <span class="available-stock">-</span>
+              </td>
+              <td>
+                {{ item_form.quantity|add_class:'form-control quantity-input' }}
+                <div class="invalid-feedback quantity-error"></div>
+              </td>
+              <td>
+                <span class="status-badge"></span>
+              </td>
             </tr>
           {% endfor %}
           <!-- Hidden empty row for JS cloning -->
-          <tr id="empty-form-row" style="display:none;">
-            <td>{{ formset.empty_form.inventory }}</td>
-            <td>{{ formset.empty_form.quantity }}</td>
+          <tr id="empty-form-row" style="display:none;" class="inventory-row">
+            <td>
+              {{ formset.empty_form.inventory|add_class:'form-select inventory-select' }}
+              <div class="inventory-info" style="display: none;">
+                <small class="text-muted">
+                  <strong>Company:</strong> <span class="company-name"></span><br />
+                  <strong>Part:</strong> <span class="part-name"></span><br />
+                  <strong>Barcode:</strong> <span class="barcode"></span>
+                </small>
+              </div>
+            </td>
+            <td>
+              <span class="available-stock">-</span>
+            </td>
+            <td>
+              {{ formset.empty_form.quantity|add_class:'form-control quantity-input' }}
+              <div class="invalid-feedback quantity-error"></div>
+            </td>
+            <td>
+              <span class="status-badge"></span>
+            </td>
           </tr>
         </tbody>
       </table>
       <button type="button" class="btn btn-secondary" id="add-row-btn">Add Another Item</button>
-      <button type="submit" class="btn btn-primary">Transfer</button>
+      <button type="submit" class="btn btn-primary" id="submit-btn">Transfer</button>
     </form>
   </div>
 
   <script>
+    // Store inventory data for quick access
+    const inventoryData = {}
+    
+    // Fetch inventory data when page loads
     document.addEventListener('DOMContentLoaded', function () {
+      fetchInventoryData()
+    
       const addRowBtn = document.getElementById('add-row-btn')
       const formsetTable = document.getElementById('formset-table').getElementsByTagName('tbody')[0]
       const totalForms = document.getElementById('id_form-TOTAL_FORMS')
@@ -73,7 +117,131 @@
     
         formsetTable.appendChild(newRow)
         totalForms.value = formCount + 1
+    
+        // Add event listeners to new row
+        addRowEventListeners(newRow)
       })
+    
+      // Add event listeners to existing rows
+      document.querySelectorAll('.inventory-row').forEach(addRowEventListeners)
+    })
+    
+    function addRowEventListeners(row) {
+      const inventorySelect = row.querySelector('.inventory-select')
+      const quantityInput = row.querySelector('.quantity-input')
+    
+      if (inventorySelect) {
+        inventorySelect.addEventListener('change', function () {
+          updateInventoryInfo(row, this.value)
+        })
+      }
+    
+      if (quantityInput) {
+        quantityInput.addEventListener('input', function () {
+          validateQuantity(row)
+        })
+      }
+    }
+    
+    function fetchInventoryData() {
+      // Fetch inventory data from the server
+      fetch('{% url "inventoryManage:fetch_inventory_data" %}')
+        .then((response) => response.json())
+        .then((data) => {
+          data.forEach((item) => {
+            inventoryData[item.id] = item
+          })
+        })
+        .catch((error) => {
+          console.error('Error fetching inventory data:', error)
+        })
+    }
+    
+    function updateInventoryInfo(row, inventoryId) {
+      const inventoryInfo = row.querySelector('.inventory-info')
+      const availableStock = row.querySelector('.available-stock')
+      const statusBadge = row.querySelector('.status-badge')
+    
+      if (inventoryId && inventoryData[inventoryId]) {
+        const item = inventoryData[inventoryId]
+    
+        // Update inventory info
+        row.querySelector('.company-name').textContent = item.company_name
+        row.querySelector('.part-name').textContent = item.part_name
+        row.querySelector('.barcode').textContent = item.barcode || 'N/A'
+        inventoryInfo.style.display = 'block'
+    
+        // Update available stock
+        availableStock.textContent = item.actual_quantity
+    
+        // Update status badge
+        if (item.actual_quantity <= 0) {
+          statusBadge.innerHTML = '<span class="badge bg-danger">Out of Stock</span>'
+        } else if (item.actual_quantity <= item.minimum_quantity) {
+          statusBadge.innerHTML = '<span class="badge bg-warning">Low Stock</span>'
+        } else {
+          statusBadge.innerHTML = '<span class="badge bg-success">In Stock</span>'
+        }
+      } else {
+        inventoryInfo.style.display = 'none'
+        availableStock.textContent = '-'
+        statusBadge.innerHTML = ''
+      }
+    
+      // Validate quantity after updating inventory
+      validateQuantity(row)
+    }
+    
+    function validateQuantity(row) {
+      const inventorySelect = row.querySelector('.inventory-select')
+      const quantityInput = row.querySelector('.quantity-input')
+      const quantityError = row.querySelector('.quantity-error')
+      const availableStock = row.querySelector('.available-stock')
+    
+      if (!inventorySelect.value || !quantityInput.value) {
+        quantityInput.classList.remove('is-invalid')
+        quantityError.textContent = ''
+        return true
+      }
+    
+      const inventoryId = inventorySelect.value
+      const quantity = parseFloat(quantityInput.value)
+      const available = parseFloat(availableStock.textContent)
+    
+      if (isNaN(quantity) || quantity <= 0) {
+        quantityInput.classList.add('is-invalid')
+        quantityError.textContent = 'Please enter a valid quantity greater than 0'
+        return false
+      }
+    
+      if (quantity > available) {
+        quantityInput.classList.add('is-invalid')
+        quantityError.textContent = `Quantity cannot exceed available stock (${available})`
+        return false
+      }
+    
+      quantityInput.classList.remove('is-invalid')
+      quantityError.textContent = ''
+      return true
+    }
+    
+    // Form submission validation
+    document.getElementById('transfer-form').addEventListener('submit', function (e) {
+      const rows = document.querySelectorAll('.inventory-row')
+      let isValid = true
+    
+      rows.forEach((row) => {
+        if (row.style.display !== 'none') {
+          if (!validateQuantity(row)) {
+            isValid = false
+          }
+        }
+      })
+    
+      if (!isValid) {
+        e.preventDefault()
+        alert('Please fix the validation errors before submitting.')
+      }
     })
   </script>
 {% endblock %}

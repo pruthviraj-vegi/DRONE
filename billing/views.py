@@ -41,45 +41,98 @@ def add_item_by_barcode(request, session_id):
     session = get_object_or_404(
         BillingSession, id=session_id, user=request.user, is_active=True
     )
+
     if request.method == "POST":
         barcode = request.POST.get("barcode")
-        quantity = 1  # Default quantity is 1
+        quantity = Decimal(
+            request.POST.get("quantity", 1)
+        )  # Get quantity from POST or default to 1
 
         try:
             if request.user.role != "admin":
-                data = BranchInventory.objects.filter(
+                # Check if item exists in branch inventory
+                branch_inventory = BranchInventory.objects.filter(
                     branch=request.user.branch, inventory__barcode=barcode
                 ).first()
-                if data:
-                    inventory = data.inventory
-                else:
-                    messages.error(request, "Item with this barcode not found.")
+
+                if not branch_inventory:
+                    messages.error(
+                        request, "Item with this barcode not found in your branch."
+                    )
                     return redirect("billing:session_detail", session_id=session.id)
+
+                inventory = branch_inventory.inventory
+
+                # Check actual available quantity (considering session items)
+                actual_available = branch_inventory.actual_quantity()
+
+                if actual_available < 0:
+                    messages.error(
+                        request,
+                        f"Not enough stock available. Only {actual_available} units available.",
+                    )
+                    return redirect("billing:session_detail", session_id=session.id)
+
             else:
-                inventory = Inventory.objects.get(barcode=barcode)
+                # Admin can access any inventory
+                inventory = Inventory.objects.filter(barcode=barcode).first()
 
-                # if 0 < quantity:
-                #     messages.error(request, "Not enough stock available.")
-                #     pass
-                # else:
+                if inventory.actual_quantity < quantity:
+                    messages.error(
+                        request,
+                        f"Not enough stock available. Only {inventory.actual_quantity} units available.",
+                    )
+                    return redirect("billing:session_detail", session_id=session.id)
 
-            item, created = BillingSessionItem.objects.get_or_create(
-                session=session,
-                inventory=inventory,
-                defaults={
-                    "quantity": quantity,
-                    "price": inventory.discounted_price,
-                },
-            )
-            if not created:
-                item.quantity += quantity
-                item.save()
-            messages.success(
-                request,
-                f"Added {quantity} x {inventory.part_name} to session.",
-            )
+            if not inventory:
+                messages.error(request, "Item with this barcode not found.")
+                return redirect("billing:session_detail", session_id=session.id)
+
+            # Check if item already exists in this session
+            existing_item = BillingSessionItem.objects.filter(
+                session=session, inventory=inventory
+            ).first()
+
+            if existing_item:
+                # If item exists, check if adding more quantity is possible
+                if request.user.role != "admin":
+                    # For non-admin users, check if total quantity (existing + new) doesn't exceed available
+                    total_requested = existing_item.quantity + quantity
+                    if (
+                        branch_inventory.actual_quantity() + existing_item.quantity
+                        < total_requested
+                    ):
+                        messages.error(
+                            request,
+                            f"Cannot add {quantity} more units. Only {branch_inventory.actual_quantity()} additional units available.",
+                        )
+                        return redirect("billing:session_detail", session_id=session.id)
+
+                # Update existing item
+                existing_item.quantity += quantity
+                existing_item.save()
+                messages.success(
+                    request,
+                    f"Updated quantity to {existing_item.quantity} x {inventory.part_name} in session.",
+                )
+            else:
+                # Create new item
+                BillingSessionItem.objects.create(
+                    session=session,
+                    inventory=inventory,
+                    quantity=quantity,
+                    price=inventory.discounted_price,
+                )
+                messages.success(
+                    request,
+                    f"Added {quantity} x {inventory.part_name} to session.",
+                )
+
         except Inventory.DoesNotExist:
             messages.error(request, "Item with this barcode not found.")
+        except ValueError:
+            messages.error(request, "Invalid quantity provided.")
+
     return redirect("billing:session_detail", session_id=session.id)
 
 
@@ -100,8 +153,52 @@ def update_item_api(request, item_id):
             price = data.get("price")
 
             if quantity is not None and price is not None:
-                item.quantity = Decimal(quantity)
-                item.price = Decimal(price)
+                new_quantity = Decimal(quantity)
+                new_price = Decimal(price)
+
+                # Check quantity availability for non-admin users
+                if request.user.role != "admin":
+                    try:
+                        branch_inventory = BranchInventory.objects.get(
+                            branch=request.user.branch, inventory=item.inventory
+                        )
+
+                        # Check if the new quantity is available (excluding current item)
+                        if not branch_inventory.is_quantity_available(
+                            new_quantity, exclude_session_item=item
+                        ):
+                            return JsonResponse(
+                                {
+                                    "status": "error",
+                                    "message": f"Not enough stock available. Only {branch_inventory.actual_quantity()} units available.",
+                                    "quantity": item.quantity,
+                                },
+                                status=200,
+                            )
+                    except BranchInventory.DoesNotExist:
+                        return JsonResponse(
+                            {
+                                "status": "error",
+                                "message": "Item not found in your branch inventory.",
+                            },
+                            status=400,
+                        )
+
+                else:
+                    if not item.inventory.is_quantity_available(
+                        new_quantity, exclude_session_item=item
+                    ):
+                        return JsonResponse(
+                            {
+                                "status": "error",
+                                "message": "Not enough stock available.",
+                                "quantity": item.quantity,
+                            },
+                            status=200,
+                        )
+
+                item.quantity = new_quantity
+                item.price = new_price
                 item.save()
 
                 return JsonResponse(
@@ -127,19 +224,45 @@ def inventory_search_api(request):
     q = request.GET.get("q", "").strip()
     results = []
     if q:
-        items = Inventory.objects.filter(
-            Q(part_name__icontains=q)
-            | Q(barcode__icontains=q)
-            | Q(company_name__icontains=q)
-        )[:20]
-        results = [
-            {
-                "id": item.id,
-                "company_name": item.company_name,
-                "part_name": item.part_name,
-                "barcode": item.barcode,
-                "stock": item.available_quantity,
-            }
-            for item in items
-        ]
+        if request.user.role != "admin":
+            # For non-admin users, search in their branch inventory
+            branch_inventories = (
+                BranchInventory.objects.filter(
+                    branch=request.user.branch, inventory__part_name__icontains=q
+                )
+                | BranchInventory.objects.filter(
+                    branch=request.user.branch, inventory__barcode__icontains=q
+                )
+                | BranchInventory.objects.filter(
+                    branch=request.user.branch, inventory__company_name__icontains=q
+                )[:20]
+            )
+
+            results = [
+                {
+                    "id": bi.inventory.id,
+                    "company_name": bi.inventory.company_name,
+                    "part_name": bi.inventory.part_name,
+                    "barcode": bi.inventory.barcode,
+                    "stock": bi.actual_quantity(),  # Use actual available quantity
+                }
+                for bi in branch_inventories
+            ]
+        else:
+            # For admin users, search all inventory
+            items = Inventory.objects.filter(
+                Q(part_name__icontains=q)
+                | Q(barcode__icontains=q)
+                | Q(company_name__icontains=q)
+            )[:20]
+            results = [
+                {
+                    "id": item.id,
+                    "company_name": item.company_name,
+                    "part_name": item.part_name,
+                    "barcode": item.barcode,
+                    "stock": item.available_quantity,
+                }
+                for item in items
+            ]
     return JsonResponse({"results": results})

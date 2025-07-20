@@ -159,19 +159,24 @@
         })
           .then((response) => response.json())
           .then((data) => {
+            const row = document.querySelector(`[data-item-id="${itemId}"]`).closest('tr')
             if (data.status === 'success') {
-              const row = document.querySelector(`[data-item-id="${itemId}"]`).closest('tr')
               row.querySelector('.item-total').textContent = data.item.amount.toLocaleString('en-IN', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
               })
-              // Refocus on barcode scanner after successful update
-              barcodeInput.focus()
+              
             } else {
-              console.error('Error updating item:', data.message)
+              CalledToast("error", data.message)
+              const quantity = row.querySelector('.quantity-input').value = data.quantity
             }
           })
-          .catch((error) => console.error('Error:', error))
+          .catch((error) => {
+            CalledToast("error", error.message)
+          })
+          .finally(() => {
+            barcodeInput.focus()
+          })
       }, 1000) // Wait 500ms after last change before making API call
     
       // Add event listeners for quantity and price inputs

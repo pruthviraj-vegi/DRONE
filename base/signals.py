@@ -60,8 +60,6 @@ def set_qty_branch(branch_inventory):
             ).aggregate(total=Sum("quantity"))["total"]
             or 0
         )
-
-        print(transaction_quantity, sold_quantity)
         available_quantity = transaction_quantity - sold_quantity
 
         if branch_inventory.available_quantity != available_quantity:

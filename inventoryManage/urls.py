@@ -24,4 +24,14 @@ urlpatterns = [
         views.transaction_details,
         name="transaction_details",
     ),
+    path(
+        "fetch-inventory-data/",
+        views.fetch_inventory_data,
+        name="fetch_inventory_data",
+    ),
+    path(
+        "debug-inventory/",
+        views.debug_inventory,
+        name="debug_inventory",
+    ),
 ]

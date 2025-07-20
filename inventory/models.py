@@ -75,70 +75,30 @@ class Inventory(models.Model):
         return self.selling_price
 
     @property
-    def transaction_quantity(self):
-        return (
-            self.inventory_transactions.all().aggregate(total=Sum("quantity"))["total"]
+    def actual_quantity(self):
+        session_items_total = (
+            self.billing_session_items.filter(
+                session__user__branch=self.branch
+            ).aggregate(total=Sum("quantity"))["total"]
             or 0
         )
 
-    @property
-    def transfer_quantity(self):
-        return (
-            self.branch_inventory_inventory.all().aggregate(total=Sum("quantity"))[
-                "total"
-            ]
-            or 0
-        )
+        actual_available = self.available_quantity - session_items_total
 
-    @property
-    def sold_quantity(self):
-        return (
-            self.invoice_items_inventory.filter(invoice__branch=self.branch).aggregate(
-                total=Sum("quantity")
-            )["total"]
-            or 0
-        )
+        return max(actual_available, 0)
 
-    # Helper to get total stock across all branches
-    # @property
-    # def total_quantity(self):
-    #     from inventoryManage.models import BranchInventory
+    def is_quantity_available(self, requested_quantity, exclude_session_item=None):
+        """
+        Check if requested quantity is available, optionally excluding a specific session item
+        """
 
-    #     return (
-    #         BranchInventory.objects.filter(item=self).aggregate(
-    #             total=models.Sum("quantity")
-    #         )["total"]
-    #         or 0
-    #     )
+        actual_available = self.actual_quantity
 
-    # @property
-    # def total_available_quantity(self):
-    #     from inventoryManage.models import BranchInventory
+        # If excluding a specific session item, add its quantity back to available
+        if exclude_session_item:
+            actual_available += exclude_session_item.quantity
 
-    #     return (
-    #         BranchInventory.objects.filter(item=self).aggregate(
-    #             total=models.Sum("available_quantity")
-    #         )["total"]
-    #         or 0
-    #     )
-
-    # # Remove old properties that referenced quantity/available_quantity directly
-
-    # @property
-    # def stock_status(self):
-    #     if self.total_quantity <= 0:
-    #         return "Out of Stock"
-    #     elif self.total_quantity <= self.minimum_quantity:
-    #         return "Low Stock"
-    #     return "In Stock"
-
-    # @property
-    # def stock_status_badge(self):
-    #     if self.total_quantity <= 0:
-    #         return "danger"
-    #     elif self.total_quantity <= self.minimum_quantity:
-    #         return "warning"
-    #     return "success"
+        return actual_available >= requested_quantity
 
 
 class StockTransaction(models.Model):
