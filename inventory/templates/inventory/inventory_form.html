@@ -12,7 +12,7 @@
             <p class="text-muted mb-4">
               <small>* indicates required fields</small>
             </p>
-            <form method="post">
+            <form method="post" id="inventoryForm">
               {% csrf_token %}
               {% if form.errors %}
                 <div class="alert alert-danger">
@@ -30,15 +30,21 @@
                       {% endif %}
                     </label>
                     {{ field }}
+                    {% if field.help_text %}
+                      <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
                     {% if field.errors %}
                       <div class="invalid-feedback d-block">{{ field.errors }}</div>
                     {% endif %}
                   </div>
                 {% endfor %}
               </div>
-              <div class="d-flex justify-content-between">
-                <a href="{% url 'inventory:inventory_list' %}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">Save Item</button>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                  <button type="submit" name="action" value="save_and_add" class="btn btn-success"><i class="fas fa-plus"></i> Save & Add Another</button>
+                  <button type="submit" name="action" value="save" class="btn btn-primary"><i class="fas fa-save"></i> Save Item</button>
+                </div>
+                <a href="{% url 'inventory:inventory_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Cancel</a>
               </div>
             </form>
           </div>
@@ -57,6 +63,81 @@
     
       AutoComplete(company_name, company_name_url, 'company_name')
       AutoComplete(part_name, company_name_url, 'part_name')
+    
+      // Auto-focus on company name field when form loads
+      $('#id_company_name').focus()
+    
+      // Remember common values for faster data entry
+      var rememberedValues = JSON.parse(localStorage.getItem('inventoryFormValues') || '{}')
+    
+      // Auto-fill remembered values if fields are empty
+      if (!company_name.val() && rememberedValues.company_name) {
+        company_name.val(rememberedValues.company_name)
+      }
+      if (!$('#id_uom').val() && rememberedValues.uom) {
+        $('#id_uom').val(rememberedValues.uom)
+      }
+      if (!$('#id_gst').val() && rememberedValues.gst) {
+        $('#id_gst').val(rememberedValues.gst)
+      }
+      if (!$('#id_discount').val() && rememberedValues.discount) {
+        $('#id_discount').val(rememberedValues.discount)
+      }
+    
+      // Remember values when form is submitted successfully
+      $('#inventoryForm').on('submit', function (e) {
+        var action = $('button[type="submit"]:focus').val()
+        if (action === 'save_and_add') {
+          // Store the action in a hidden field
+          $('<input>')
+            .attr({
+              type: 'hidden',
+              name: 'save_and_add',
+              value: 'true'
+            })
+            .appendTo($(this))
+        } else if (action === 'save_and_print') {
+          // Store the action in a hidden field
+          $('<input>')
+            .attr({
+              type: 'hidden',
+              name: 'print_barcode',
+              value: 'true'
+            })
+            .appendTo($(this))
+        }
+    
+        // Remember current values for next form
+        var currentValues = {
+          company_name: company_name.val(),
+          uom: $('#id_uom').val(),
+          gst: $('#id_gst').val(),
+          discount: $('#id_discount').val()
+        }
+        localStorage.setItem('inventoryFormValues', JSON.stringify(currentValues))
+      })
+    
+      // Keyboard shortcuts
+      $(document).keydown(function (e) {
+        // Ctrl+Enter to save and add another
+        if (e.ctrlKey && e.keyCode === 13) {
+          e.preventDefault()
+          $('button[value="save_and_add"]').click()
+        }
+        // Ctrl+S to save
+        if (e.ctrlKey && e.keyCode === 83) {
+          e.preventDefault()
+          $('button[value="save"]').click()
+        }
+        // Ctrl+P to save and print barcode
+        if (e.ctrlKey && e.keyCode === 80) {
+          e.preventDefault()
+          $('button[value="save_and_print"]').click()
+        }
+      })
+    
+      // Show keyboard shortcuts help
+      $('<div class="text-muted mt-2">').html('<small><strong>Keyboard shortcuts:</strong> Ctrl+S to save, Ctrl+Enter to save and add another, Ctrl+P to save and print barcode</small>').insertAfter('#inventoryForm .btn-group')
     })
   </script>
 {% endblock %}

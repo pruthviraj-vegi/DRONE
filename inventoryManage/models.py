@@ -48,6 +48,7 @@ class BranchInventory(models.Model):
     def __str__(self):
         return f"{self.inventory.part_name} - {self.branch.name}"
 
+    @property
     def actual_quantity(self):
         """
         Calculate actual available quantity by subtracting session items from available_quantity
@@ -68,13 +69,23 @@ class BranchInventory(models.Model):
         """
         Check if requested quantity is available, optionally excluding a specific session item
         """
-        actual_available = self.actual_quantity()
+        actual_available = self.actual_quantity
 
         # If excluding a specific session item, add its quantity back to available
         if exclude_session_item:
             actual_available += exclude_session_item.quantity
 
         return actual_available >= requested_quantity
+
+    @property
+    def stock_status_badge(self):
+        """Returns stock status for badge display"""
+        if self.actual_quantity <= 0:
+            return "out"
+        elif self.actual_quantity <= self.inventory.minimum_quantity:
+            return "low"
+        else:
+            return "available"
 
 
 class BranchInventoryTransaction(models.Model):

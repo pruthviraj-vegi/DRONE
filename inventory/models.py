@@ -87,6 +87,16 @@ class Inventory(models.Model):
 
         return max(actual_available, 0)
 
+    @property
+    def stock_status_badge(self):
+        """Returns stock status for badge display"""
+        if self.actual_quantity <= 0:
+            return "out"
+        elif self.actual_quantity <= self.minimum_quantity:
+            return "low"
+        else:
+            return "available"
+
     def is_quantity_available(self, requested_quantity, exclude_session_item=None):
         """
         Check if requested quantity is available, optionally excluding a specific session item

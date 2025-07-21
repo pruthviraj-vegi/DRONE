@@ -1,0 +1,28 @@
+{% load custom_filters %}
+{% for item in inventory %}
+  <tr>
+    <td>{{ item.inventory.barcode }}</td>
+    <td>{{ item.inventory.company_name }}</td>
+    <td>{{ item.inventory.part_name }}</td>
+    <td>
+      <span class="badge {{ item.stock_status_badge|status_badge }}">
+        {{ item.actual_quantity }} {{ item.inventory.uom }}
+        {% if item.stock_status_badge == 'low' %}
+          <i class="fas fa-exclamation-triangle" title="Low Stock"></i>
+        {% elif item.stock_status_badge == 'out' %}
+          <i class="fas fa-times-circle" title="Out of Stock"></i>
+        {% endif %}
+      </span>
+    </td>
+    <td>{{ item.inventory.selling_price|currency_format }}</td>
+    <td>{{ item.inventory.discount }}%</td>
+    <td>{{ item.inventory.discounted_price|currency_format }}</td>
+    <td>
+      <span class="badge {{ item.inventory.is_active|status_badge }}">{{ item.inventory.is_active|yesno:'Active,Inactive' }}</span>
+    </td>
+  </tr>
+{% empty %}
+  <tr>
+    <td colspan="8" class="text-center">No inventory items assigned to your branch.</td>
+  </tr>
+{% endfor %}

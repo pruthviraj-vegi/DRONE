@@ -6,7 +6,14 @@
     <td>{{ inventory.company_name }}</td>
     <td>{{ inventory.part_name }}</td>
     <td>
-      <span class="badge {{ inventory.stock_status_badge|status_badge }}">{{ inventory.available_quantity }}</span>
+      <span class="badge {{ inventory.stock_status_badge|status_badge }}">
+        {{ inventory.actual_quantity }} {{ inventory.uom }}
+        {% if inventory.stock_status_badge == 'low' %}
+          <i class="fas fa-exclamation-triangle" title="Low Stock"></i>
+        {% elif inventory.stock_status_badge == 'out' %}
+          <i class="fas fa-times-circle" title="Out of Stock"></i>
+        {% endif %}
+      </span>
     </td>
     <td>{{ inventory.selling_price|currency_format }}</td>
     <td>{{ inventory.discount }}%</td>
@@ -19,8 +26,8 @@
         <a href="{% url 'inventory:inventory_edit' inventory.pk %}" class="btn btn-sm btn-outline-primary" title="Edit Item"><i class="fas fa-edit"></i></a>
         <a href="{% url 'inventory:update_stock' inventory.pk %}" class="btn btn-sm btn-outline-success" title="Update Stock"><i class="fas fa-boxes"></i></a>
         <a href="{% url 'inventory:stock_transaction_list' inventory.pk %}" class="btn btn-sm btn-outline-info" title="View Transactions"><i class="fas fa-history"></i></a>
+        <a href="{% url 'report:createBarcode' inventory.pk %}" target="_blank" class="btn btn-sm btn-outline-warning" title="Print Barcode"><i class="fas fa-barcode"></i></a>
         <a href="{% url 'inventory:inventory_delete' inventory.pk %}" class="btn btn-sm btn-outline-danger" title="Delete Item"><i class="fas fa-trash"></i></a>
-        <a href="{% url 'report:createBarcode' inventory.pk %}" target="_blank" class="btn btn-sm btn-outline-info" title="Generate Barcode"><i class="fas fa-barcode"></i></a>
       </div>
     </td>
   </tr>

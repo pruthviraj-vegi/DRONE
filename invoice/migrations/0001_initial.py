@@ -49,7 +49,10 @@ class Migration(migrations.Migration):
                         max_length=100,
                     ),
                 ),
-                ("total_amount", models.DecimalField(decimal_places=2, max_digits=12)),
+                (
+                    "total_amount",
+                    models.DecimalField(decimal_places=2, max_digits=12, default=0),
+                ),
                 (
                     "advance_amount",
                     models.DecimalField(decimal_places=2, default=0, max_digits=12),

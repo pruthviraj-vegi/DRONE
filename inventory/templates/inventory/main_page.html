@@ -6,28 +6,40 @@
   <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1 class="h3">Inventory Management</h1>
-      <a href="{% url 'inventory:inventory_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Add New Item</a>
+      <div>
+        <a href="{% url 'inventory:inventory_dashboard' %}" class="btn btn-outline-info me-2"><i class="fas fa-chart-bar"></i> Dashboard</a>
+        {% comment %} <a href="{% url 'inventory:bulk_import' %}" class="btn btn-outline-success me-2"><i class="fas fa-upload"></i> Bulk Import</a> {% endcomment %}
+        <a href="{% url 'inventory:inventory_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Add New Item</a>
+      </div>
     </div>
 
     <!-- Search and Filter Section -->
     <div class="card mb-4">
       <div class="card-body">
         <form method="get" class="row g-3" action="" id="search-form">
-          <div class="col-md-4">
+          <div class="col-md-8">
             <div class="input-group">
               <input type="search" class="form-control" name="search" placeholder="Search by name or part number" value="{{ search_query }}" />
               <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
             </div>
           </div>
 
-          <div class="col-md-3">
+          <div class="col-md-2">
             <select class="form-select" name="stock_status">
               <option value="">All Stock Status</option>
               <option value="out">Out of Stock</option>
               <option value="low">Low Stock</option>
             </select>
           </div>
-          <div class="col-md-2">
+          <div class="col-md-1">
+            <select name="branch_name" class="form-select">
+              <option value="">This Branch</option>
+              {% for branch in branchs %}
+                <option value="{{ branch }}">{{ branch }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-1">
             <button type="submit" class="btn btn-primary w-100">Filter</button>
           </div>
         </form>

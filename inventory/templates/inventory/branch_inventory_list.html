@@ -11,7 +11,7 @@
       <div class="card">
         <div class="card-body">
           <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="table__data">
               <thead>
                 <tr>
                   <th>Barcode</th>
@@ -20,99 +20,21 @@
                   <th>Quantity (Branch)</th>
                   <th>Selling Price</th>
                   <th>Discount</th>
+                  <th>Amount</th>
                   <th>Status</th>
                 </tr>
               </thead>
-              <tbody>
-                {% for item in page_obj %}
-                  <tr>
-                    <td>{{ item.inventory.barcode }}</td>
-                    <td>{{ item.inventory.company_name }}</td>
-                    <td>{{ item.inventory.part_name }}</td>
-                    <td>
-                      <span class="badge {% if item.quantity <= 0 %}
-                          
-                          
-                          
-                          bg-danger
-
-
-
-                        {% elif item.quantity <= item.inventory.minimum_quantity %}
-                          
-                          
-                          
-                          bg-warning
-
-
-
-                        {% else %}
-                          
-                          
-                          
-                          bg-success
-
-
-
-                        {% endif %}">
-                        {{ item.available_quantity }}
-                      </span>
-                    </td>
-                    <td>{{ item.inventory.selling_price }}</td>
-                    <td>{{ item.inventory.discount }}%</td>
-                    <td>
-                      <span class="badge {% if item.inventory.is_active %}
-                          
-                          
-                          bg-success
-
-
-                        {% else %}
-                          
-                          
-                          bg-danger
-
-
-                        {% endif %}">
-                        {{ item.inventory.is_active|yesno:'Active,Inactive' }}
-                      </span>
-                    </td>
-                  </tr>
-                {% empty %}
-                  <tr>
-                    <td colspan="8" class="text-center">No inventory items assigned to your branch.</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
+              <tbody id="table_body"></tbody>
             </table>
           </div>
-          {% if page_obj.has_other_pages %}
-            <nav aria-label="Page navigation" class="mt-4">
-              <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                  <li class="page-item">
-                    <a class="page-link" href="?page=1">&laquo; First</a>
-                  </li>
-                  <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                  </li>
-                {% endif %}
-                <li class="page-item active">
-                  <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-                </li>
-                {% if page_obj.has_next %}
-                  <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                  </li>
-                  <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
-                  </li>
-                {% endif %}
-              </ul>
-            </nav>
-          {% endif %}
         </div>
       </div>
     {% endif %}
   </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    const search_url = "{% url 'inventory:fetch_inventory' %}"
+  </script>
 {% endblock %}

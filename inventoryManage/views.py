@@ -60,7 +60,7 @@ def fetch_inventory_data(request):
                         "company_name": branch_inv.inventory.company_name,
                         "part_name": branch_inv.inventory.part_name,
                         "barcode": branch_inv.inventory.barcode,
-                        "actual_quantity": float(branch_inv.actual_quantity()),
+                        "actual_quantity": float(branch_inv.actual_quantity),
                         "minimum_quantity": float(
                             branch_inv.inventory.minimum_quantity
                         ),
@@ -118,7 +118,7 @@ def branch_inventory_transfer(request):
                     branch_inventory = BranchInventory.objects.get(
                         inventory=inventory, branch=request.user.branch
                     )
-                    actual_available = branch_inventory.actual_quantity()
+                    actual_available = branch_inventory.actual_quantity
                 except BranchInventory.DoesNotExist:
                     # If no BranchInventory record, check direct inventory
                     if inventory.branch == request.user.branch:

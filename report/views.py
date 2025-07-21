@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from invoice.models import Invoice, InvoiceItem
-from inventory.models import Inventory
+from inventory.models import Inventory, StockTransaction
 import io
 import base64
 from barcode import Code128
@@ -13,6 +13,8 @@ from customers.models import Member
 
 
 def get_print_count(quantity):
+    if quantity == 0:
+        return 1
     return quantity // 2 if quantity % 2 == 0 else quantity // 2 + 1
 
 
@@ -45,6 +47,17 @@ def createInvoice(request, pk):
 def createBarcode(request, pk):
     template = "report/barcode.html"
     values = Inventory.objects.get(id=pk)
+    last_stock = (
+        StockTransaction.objects.filter(
+            inventory=values, transaction_type__in=["initial", "purchase"]
+        )
+        .order_by("-created_at")
+        .first()
+        .quantity
+    )
+
+    getCount = min(last_stock, values.available_quantity)
+
     # shop_details = ShopDetails.objects.all().first()
     code128 = Code128(values.barcode, writer=SVGWriter())
     buffer = io.BytesIO()
@@ -55,7 +68,7 @@ def createBarcode(request, pk):
     # Add the barcode image to the context dictionary
     context = {
         "values": values,
-        "print_count": 4,
+        "print_count": get_print_count(getCount),
         "barcode_svg": barcode_image,
         # "shop_details": shop_details,
     }
