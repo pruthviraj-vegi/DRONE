@@ -13,6 +13,7 @@ class InvoiceForm(forms.ModelForm):
             "payment_mode",
             "total_amount",
             "advance_amount",
+            "discount_amount",
             "notes",
         ]
         widgets = {
@@ -23,6 +24,7 @@ class InvoiceForm(forms.ModelForm):
                 attrs={"class": "form-control", "readonly": True}
             ),
             "advance_amount": forms.TextInput(attrs={"class": "form-control"}),
+            "discount_amount": forms.TextInput(attrs={"class": "form-control"}),
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
 
@@ -42,6 +44,31 @@ class InvoiceForm(forms.ModelForm):
                     status="active",
                 )
 
+    def clean_discount_amount(self):
+        discount_amount = self.cleaned_data.get("discount_amount")
+        if discount_amount < 0:
+            raise forms.ValidationError("Discount amount cannot be negative")
+        return discount_amount
+
+    def clean_advance_amount(self):
+        advance_amount = self.cleaned_data.get("advance_amount")
+        if advance_amount < 0:
+            raise forms.ValidationError("Advance amount cannot be negative")
+        return advance_amount
+
+    def clean_total_amount(self):
+        total_amount = self.cleaned_data.get("total_amount")
+        if total_amount < 0:
+            raise forms.ValidationError("Total amount cannot be negative")
+        return total_amount
+
+    def clean_invoice_type(self):
+        invoice_type = self.cleaned_data.get("invoice_type")
+        if invoice_type is None:
+            raise forms.ValidationError("Invoice type is required")
+        return invoice_type
+
+
     def clean(self):
         cleaned_data = super().clean()
         advance_amount = cleaned_data.get("advance_amount")
@@ -51,11 +78,12 @@ class InvoiceForm(forms.ModelForm):
         if int(total_amount) <= 0:
             raise forms.ValidationError("Amount must be greater than 0")
 
-        # Only validate if all fields are present and valid
-        if advance_amount is not None and total_amount is not None:
-            if invoice_type:
-                cleaned_data["advance_amount"] = Decimal(0)
-            else:
+        # Set advance amount to 0 for cash invoice type (invoice_type = True)
+        if invoice_type:
+            cleaned_data["advance_amount"] = Decimal(0)
+        else:
+            # For credit invoices, validate advance amount
+            if advance_amount is not None and total_amount is not None:
                 if advance_amount > total_amount:
                     raise forms.ValidationError(
                         "Advance amount cannot be greater than total amount"

@@ -57,6 +57,9 @@
         <a class="nav-link {{ request.path|startWith:'/inventory/' }}" href="{% url 'inventory:inventory_list' %}"><i class="fas fa-box"></i> <span>Inventory</span></a>
       </li>
       <li>
+        <a class="nav-link {{ request.path|startWith:'/inventory/assemblies/' }}" href="{% url 'inventory:assembly_list' %}"><i class="fas fa-puzzle-piece"></i> <span>Assemblies</span></a>
+      </li>
+      <li>
         <a class="nav-link {{ request.path|startWith:'/inventoryManage/' }}" href="{% url 'inventoryManage:branch_inventory_transfer_list' %}"><i class="fas fa-box"></i> <span>Inventory Transfer</span></a>
       </li>
     </div>

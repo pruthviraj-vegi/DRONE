@@ -1,5 +1,6 @@
 from django import forms
-from .models import Inventory, StockTransaction
+from django.forms import inlineformset_factory
+from .models import Inventory, StockTransaction, ProductAssembly, AssemblyComponent
 
 
 class InventoryCreateForm(forms.ModelForm):
@@ -192,3 +193,112 @@ class StockTransactionForm(forms.ModelForm):
             c for c in self.fields["transaction_type"].choices if c[0] != "initial"
         ]
         self.fields["transaction_type"].choices = choices
+
+
+class ProductAssemblyForm(forms.ModelForm):
+    class Meta:
+        model = ProductAssembly
+        exclude = [
+            "barcode",
+            "created_at",
+            "updated_at",
+            "created_by",
+            "branch",
+        ]
+
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter assembly name (e.g., Drone Assembly XY)",
+                    "autofocus": True,
+                }
+            ),
+            "sku": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter SKU (e.g., DRONE-XY-001)",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Assembly description",
+                }
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Additional notes about this assembly",
+                }
+            ),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+        help_texts = {
+            "name": "The name of the product assembly",
+            "sku": "Stock Keeping Unit - unique identifier for the assembly",
+            "description": "Detailed description of the assembly",
+            "notes": "Additional notes or instructions",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields(["name", "sku", "description", "notes", "is_active"])
+
+
+class AssemblyComponentForm(forms.ModelForm):
+    class Meta:
+        model = AssemblyComponent
+        fields = ["inventory_item", "quantity_required", "selling_price", "notes"]
+        widgets = {
+            "inventory_item": forms.Select(
+                attrs={
+                    "class": "form-select",
+                }
+            ),
+            "quantity_required": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "0.01",
+                    "step": "0.01",
+                    "placeholder": "Quantity needed",
+                }
+            ),
+            "selling_price": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "0",
+                    "step": "0.01",
+                    "placeholder": "Selling price for this component",
+                }
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 2,
+                    "placeholder": "Component notes (optional)",
+                }
+            ),
+        }
+
+        help_texts = {
+            "inventory_item": "Select the inventory item to include in this assembly",
+            "quantity_required": "How many units of this item are needed per assembly",
+            "selling_price": "Selling price for this component when sold as part of the assembly (leave 0 to use inventory item price)",
+            "notes": "Optional notes about this component",
+        }
+
+
+# Inline formset for assembly components
+AssemblyComponentFormSet = inlineformset_factory(
+    ProductAssembly,
+    AssemblyComponent,
+    form=AssemblyComponentForm,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)

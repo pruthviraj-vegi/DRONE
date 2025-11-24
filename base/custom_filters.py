@@ -108,6 +108,32 @@ def has_role(user, roles):
     return user.role in user_roles
 
 
+@register.filter(name="is_assembly_available")
+def is_assembly_available(branch, assembly):
+    """Check if assembly components are available for the given branch
+    Usage: {% if user_branch|is_assembly_available:assembly %}
+    For staff users, this uses BranchInventory. For admin users, it checks Inventory.branch.
+    """
+    from inventoryManage.models import BranchInventory
+    
+    if not assembly or not branch:
+        return False
+    
+    # Check if any component uses BranchInventory (indicates staff user system)
+    # If BranchInventory exists for any component, use BranchInventory check
+    # Otherwise, use regular Inventory.branch check (for admin users)
+    use_branch_inventory = False
+    for component in assembly.components.all():
+        branch_inv = BranchInventory.objects.filter(
+            branch=branch, inventory=component.inventory_item
+        ).first()
+        if branch_inv:
+            use_branch_inventory = True
+            break
+    
+    return assembly.is_fully_available_for_branch(branch, use_branch_inventory=use_branch_inventory)
+
+
 @register.filter(name="range")
 def range_filter(value):
     """Creates a range from 0 to value-1"""

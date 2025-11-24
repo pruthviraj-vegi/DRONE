@@ -157,3 +157,185 @@ class StockTransaction(models.Model):
             self.quantity = -abs(self.quantity)
 
         super().save(*args, **kwargs)
+
+
+class ProductAssembly(models.Model):
+    """
+    Represents a product assembly (Bill of Materials) that consists of multiple inventory items.
+    Example: A drone assembly that includes battery, propellers, frame, etc.
+    """
+    name = models.CharField(max_length=100)
+    sku = models.CharField(max_length=50, unique=True)
+    barcode = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.SET_NULL,
+        related_name="product_assemblies",
+        null=True,
+        blank=True,
+        help_text="Optional: Branch where assembly was created. Assemblies are shared across all branches."
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="assemblies_created",
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # Generate barcode if not provided
+        if not self.barcode:
+            for _ in range(5):
+                barcode = "".join(random.choices(string.digits, k=6))
+                if not ProductAssembly.objects.filter(barcode=barcode).exists():
+                    self.barcode = barcode
+                    break
+        
+        self.name = StringProcessor(self.name).title
+        self.description = StringProcessor(self.description).title
+        self.notes = StringProcessor(self.notes).title
+        self.sku = StringProcessor(self.sku).uppercase
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.barcode or 'NoBarcode'} - {self.name}"
+
+    class Meta:
+        verbose_name_plural = "Product Assemblies"
+        ordering = ["name"]
+
+    def get_total_component_cost(self):
+        """Calculate total cost of all components"""
+        total = 0
+        for component in self.components.all():
+            total += component.inventory_item.purchased_price * component.quantity_required
+        return total
+
+    def get_total_amount(self):
+        """Calculate total selling amount of all components"""
+        total = 0
+        for component in self.components.all():
+            if component.selling_price > 0:
+                component_price = float(component.selling_price)
+            else:
+                component_price = float(component.inventory_item.discounted_price)
+            component_total = component_price * float(component.quantity_required)
+            total += component_total
+        return round(total, 2)
+
+    def check_components_availability(self, quantity=1, branch=None, use_branch_inventory=False):
+        """
+        Check if all components are available in sufficient quantities
+        Returns: (is_available: bool, missing_items: list)
+        
+        Args:
+            quantity: Quantity of assemblies needed
+            branch: Branch to check availability for
+            use_branch_inventory: If True, check BranchInventory for staff users instead of Inventory.branch
+        """
+        from inventoryManage.models import BranchInventory
+        
+        missing_items = []
+        for component in self.components.all():
+            inventory_item = component.inventory_item
+            required_qty = component.quantity_required * quantity
+            
+            if branch and use_branch_inventory:
+                # For staff users, check BranchInventory
+                branch_inventory = BranchInventory.objects.filter(
+                    branch=branch, inventory=inventory_item
+                ).first()
+                
+                if not branch_inventory:
+                    missing_items.append({
+                        'item': inventory_item,
+                        'required': required_qty,
+                        'available': 0,
+                        'reason': 'Item not in branch'
+                    })
+                else:
+                    actual_available = branch_inventory.actual_quantity
+                    if actual_available < required_qty:
+                        missing_items.append({
+                            'item': inventory_item,
+                            'required': required_qty,
+                            'available': actual_available,
+                            'reason': 'Insufficient stock'
+                        })
+            elif branch and inventory_item.branch != branch:
+                # For admin users, check if item is in the branch
+                missing_items.append({
+                    'item': inventory_item,
+                    'required': required_qty,
+                    'available': 0,
+                    'reason': 'Item not in branch'
+                })
+            elif inventory_item.actual_quantity < required_qty:
+                # Check inventory quantity
+                missing_items.append({
+                    'item': inventory_item,
+                    'required': required_qty,
+                    'available': inventory_item.actual_quantity,
+                    'reason': 'Insufficient stock'
+                })
+        
+        return len(missing_items) == 0, missing_items
+
+    def is_fully_available_for_branch(self, branch, use_branch_inventory=True):
+        """
+        Check if all components are available in the specified branch
+        For staff users, this should use BranchInventory (use_branch_inventory=True)
+        For admin users, this checks Inventory.branch (use_branch_inventory=False)
+        """
+        is_available, _ = self.check_components_availability(
+            quantity=1, branch=branch, use_branch_inventory=use_branch_inventory
+        )
+        return is_available
+
+
+class AssemblyComponent(models.Model):
+    """
+    Represents a component (inventory item) that is part of a product assembly.
+    Each component can have its own selling price when sold as part of an assembly.
+    """
+    assembly = models.ForeignKey(
+        ProductAssembly,
+        on_delete=models.CASCADE,
+        related_name="components"
+    )
+    inventory_item = models.ForeignKey(
+        Inventory,
+        on_delete=models.CASCADE,
+        related_name="used_in_assemblies"
+    )
+    quantity_required = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=1,
+        help_text="Quantity of this component needed for one assembly"
+    )
+    selling_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Selling price for this component when sold as part of the assembly"
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.assembly.name} - {self.inventory_item.part_name} ({self.quantity_required})"
+
+    class Meta:
+        ordering = ["assembly", "inventory_item"]
+        unique_together = [["assembly", "inventory_item"]]
+
+    def save(self, *args, **kwargs):
+        self.notes = StringProcessor(self.notes).title
+        super().save(*args, **kwargs)

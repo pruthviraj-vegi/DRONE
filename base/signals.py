@@ -42,6 +42,7 @@ def set_quantity(inventory):
 
         return inventory.available_quantity
     except Exception as e:
+        print(e)
         logger.error(f"Error in set_quantity: {e}")
         return 0
 
@@ -106,6 +107,7 @@ def staff_quantity_update(invoice_item):
 @receiver(post_save, sender=InvoiceItem)
 @receiver(post_delete, sender=InvoiceItem)
 def quantity_update_by_invoice(sender, instance, **kwargs):
+    print(instance)
 
     if instance.invoice.sale_user.role == "admin":
         inventory = instance.inventory

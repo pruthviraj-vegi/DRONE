@@ -28,4 +28,10 @@ urlpatterns = [
         views.branch_inventory_fetch,
         name="branch_inventory_fetch",
     ),
+    # Assembly URLs
+    path("assemblies/", views.assembly_list, name="assembly_list"),
+    path("assemblies/create/", views.assembly_create, name="assembly_create"),
+    path("assemblies/<int:pk>/", views.assembly_detail, name="assembly_detail"),
+    path("assemblies/<int:pk>/edit/", views.assembly_edit, name="assembly_edit"),
+    path("assemblies/<int:pk>/delete/", views.assembly_delete, name="assembly_delete"),
 ]

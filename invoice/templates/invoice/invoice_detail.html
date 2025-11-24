@@ -27,21 +27,54 @@
           </div>
           <div class="col-md-6">
             <p>
-              <strong>Total Amount:</strong> {{ invoice.total_amount|currency_format }}
+              <strong>Payment Mode:</strong> {{ invoice.get_payment_mode_display }}
             </p>
-            {% if invoice.invoice_type == False %}
-              <p>
-                <strong>Advance Amount:</strong> {{ invoice.advance_amount|currency_format }}
-              </p>
-              <p>
-                <strong>Balance Amount:</strong> {{ invoice.balance|currency_format }}
-              </p>
-            {% endif %}
             <p>
               <strong>Sale User:</strong> {{ invoice.sale_user.full_name }}
             </p>
           </div>
         </div>
+      </div>
+    </div>
+    
+    <!-- Amount Details -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Amount Details</h5>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-bordered mb-0">
+          <tbody>
+            <tr>
+              <td class="fw-bold">Total Amount</td>
+              <td class="text-end">{{ invoice.total_amount|currency_format }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold">Discount Amount</td>
+              <td class="text-end {% if invoice.discount_amount > 0 %}text-danger{% endif %}">
+                {% if invoice.discount_amount > 0 %}-{% endif %}{{ invoice.discount_amount|currency_format }}
+              </td>
+            </tr>
+            <tr>
+              <td class="fw-bold">Advance Amount</td>
+              <td class="text-end {% if invoice.advance_amount > 0 %}text-info{% endif %}">
+                {% if invoice.advance_amount > 0 %}-{% endif %}{{ invoice.advance_amount|currency_format }}
+              </td>
+            </tr>
+            <tr class="table-primary">
+              <td class="fw-bold fs-5">
+                {% if invoice.invoice_type == False %}
+                  Balance Amount
+                {% else %}
+                  Final Amount
+                {% endif %}
+              </td>
+              <td class="text-end fw-bold fs-5 text-primary">
+                {{ invoice.dueAmount|currency_format }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
     <div class="card">
@@ -80,4 +113,4 @@
       </div>
     </div>
   </div>
-{% endblock %}
+{% endblock content %}

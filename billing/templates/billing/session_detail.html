@@ -85,8 +85,20 @@
               <tbody>
                 {% for item in items %}
                   <tr>
-                    <td>{{ item.inventory.part_name }}</td>
-                    <td>{{ item.inventory.barcode }}</td>
+                    <td>
+                      {% if item.assembly %}
+                        <span class="badge bg-info me-1">Assembly</span>{{ item.assembly.name }}
+                      {% else %}
+                        {{ item.inventory.part_name }}
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if item.assembly %}
+                        {{ item.assembly.barcode }}
+                      {% else %}
+                        {{ item.inventory.barcode }}
+                      {% endif %}
+                    </td>
                     <td>
                       <input type="number" class="form-control form-control-sm quantity-input" value="{{ item.quantity }}" min="1" data-item-id="{{ item.id }}" style="width: 80px;" />
                     </td>

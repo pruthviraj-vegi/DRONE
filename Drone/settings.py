@@ -57,11 +57,11 @@ INSTALLED_APPS = [
     "inventoryManage",
     "billing",
     "invoice",
+    "quote",
+    "credits",
     "dashboard",
     "base",
     "report",
-    "quote",
-    "credits",
     "widget_tweaks",
 ]
 
@@ -107,10 +107,10 @@ WSGI_APPLICATION = "Drone.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "Drone",
+        "NAME": "drone",
         "USER": "postgres",
         "PASSWORD": "10@Postgresql#05",
-        "HOST": "127.0.0.1",
+        "HOST": "localhost",
         "PORT": "5432",
     }
 }

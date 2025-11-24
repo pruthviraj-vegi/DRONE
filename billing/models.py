@@ -1,5 +1,5 @@
 from django.db import models
-from inventory.models import Inventory
+from inventory.models import Inventory, ProductAssembly
 from django.contrib.auth import get_user_model
 from base.stringProcess import StringProcessor
 from django.db.models import F, Sum, ExpressionWrapper, DecimalField
@@ -36,7 +36,20 @@ class BillingSessionItem(models.Model):
         BillingSession, related_name="session_items", on_delete=models.CASCADE
     )
     inventory = models.ForeignKey(
-        Inventory, on_delete=models.CASCADE, related_name="billing_session_items"
+        Inventory,
+        on_delete=models.CASCADE,
+        related_name="billing_session_items",
+        blank=True,
+        null=True,
+        help_text="Regular inventory item"
+    )
+    assembly = models.ForeignKey(
+        ProductAssembly,
+        on_delete=models.CASCADE,
+        related_name="billing_session_items",
+        blank=True,
+        null=True,
+        help_text="If this is an assembly product (Bill of Materials)"
     )
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -44,8 +57,18 @@ class BillingSessionItem(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.session.name}"
+        if self.assembly:
+            return f"{self.session.name} - {self.assembly.name}"
+        return f"{self.session.name} - {self.inventory.part_name if self.inventory else 'Unknown'}"
 
     @property
     def amount(self):
         return round(self.quantity * self.price, 2)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        # Ensure either inventory or assembly is set, but not both
+        if not self.inventory and not self.assembly:
+            raise ValidationError("Either inventory or assembly must be set.")
+        if self.inventory and self.assembly:
+            raise ValidationError("Cannot set both inventory and assembly.")

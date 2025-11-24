@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3">Assembly Details: {{ assembly.name }}</h1>
+      <div>
+        <a href="{% url 'inventory:assembly_edit' assembly.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> Edit</a>
+        <a href="{% url 'inventory:assembly_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to List</a>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-8">
+        <!-- Assembly Information -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Assembly Information</h5>
+          </div>
+          <div class="card-body">
+            <dl class="row">
+              <dt class="col-sm-3">Name:</dt>
+              <dd class="col-sm-9"><strong>{{ assembly.name }}</strong></dd>
+
+              <dt class="col-sm-3">SKU:</dt>
+              <dd class="col-sm-9">{{ assembly.sku }}</dd>
+
+              <dt class="col-sm-3">Barcode:</dt>
+              <dd class="col-sm-9">
+                {% if assembly.barcode %}
+                  <span class="badge bg-primary">{{ assembly.barcode }}</span>
+                {% else %}
+                  <span class="text-muted">N/A</span>
+                {% endif %}
+              </dd>
+
+              <dt class="col-sm-3">Status:</dt>
+              <dd class="col-sm-9">
+                {% if assembly.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+              </dd>
+
+              {% if assembly.description %}
+                <dt class="col-sm-3">Description:</dt>
+                <dd class="col-sm-9">{{ assembly.description }}</dd>
+              {% endif %}
+
+              {% if assembly.notes %}
+                <dt class="col-sm-3">Notes:</dt>
+                <dd class="col-sm-9">{{ assembly.notes }}</dd>
+              {% endif %}
+
+              <dt class="col-sm-3">Created:</dt>
+              <dd class="col-sm-9">{{ assembly.created_at|date:"F d, Y H:i" }}</dd>
+
+              <dt class="col-sm-3">Last Updated:</dt>
+              <dd class="col-sm-9">{{ assembly.updated_at|date:"F d, Y H:i" }}</dd>
+            </dl>
+          </div>
+        </div>
+
+        <!-- Components List -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Assembly Components ({{ components.count }})</h5>
+          </div>
+          <div class="card-body">
+            {% if components %}
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Inventory Item</th>
+                      <th>Barcode</th>
+                      <th>Quantity Required</th>
+                      <th>Available ({{ user_branch.name }})</th>
+                      <th>Selling Price</th>
+                      <th>Total Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in components_with_totals %}
+                      {% with component=item.component %}
+                        <tr {% if not item.is_available %}class="table-danger"{% endif %}>
+                          <td>{{ forloop.counter }}</td>
+                          <td>
+                            <strong>{{ component.inventory_item.part_name }}</strong><br>
+                            <small class="text-muted">{{ component.inventory_item.company_name }}</small>
+                          </td>
+                          <td>{{ component.inventory_item.barcode|default:"N/A" }}</td>
+                          <td>{{ component.quantity_required }}</td>
+                          <td>
+                            {% if item.is_available %}
+                              <span class="badge bg-success">{{ item.available_quantity }}</span>
+                            {% else %}
+                              <span class="badge bg-danger">{{ item.available_quantity }}</span>
+                              {% if item.availability_reason %}
+                                <br><small class="text-danger">{{ item.availability_reason }}</small>
+                              {% endif %}
+                            {% endif %}
+                          </td>
+                          <td>
+                            {% if component.selling_price > 0 %}
+                              {{ item.component_price|currency_format }}
+                            {% else %}
+                              <span class="text-muted">{{ item.component_price|currency_format }} (from inventory)</span>
+                            {% endif %}
+                          </td>
+                          <td>{{ item.component_total|currency_format }}</td>
+                        </tr>
+                        {% if component.notes %}
+                          <tr>
+                            <td></td>
+                            <td colspan="6">
+                              <small class="text-muted"><i class="fas fa-sticky-note"></i> {{ component.notes }}</small>
+                            </td>
+                          </tr>
+                        {% endif %}
+                      {% endwith %}
+                    {% endfor %}
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-info">
+                      <th colspan="6" class="text-end">Total Assembly Price:</th>
+                      <th>{{ total_price|currency_format }}</th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            {% else %}
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> No components added to this assembly yet.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Quick Actions</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <a href="{% url 'inventory:assembly_edit' assembly.pk %}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Edit Assembly
+              </a>
+              <a href="{% url 'inventory:assembly_delete' assembly.pk %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Delete Assembly
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Component Availability Check -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Component Availability ({{ user_branch.name }})</h5>
+          </div>
+          <div class="card-body">
+            {% for item in components_with_totals %}
+              {% with component=item.component %}
+                <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                  <strong>{{ component.inventory_item.part_name }}</strong><br>
+                  <small class="text-muted">
+                    Required: <strong>{{ component.quantity_required }}</strong><br>
+                    Available: 
+                    {% if item.is_available %}
+                      <span class="badge bg-success">{{ item.available_quantity }}</span>
+                    {% else %}
+                      <span class="badge bg-danger">{{ item.available_quantity }}</span>
+                    {% endif %}
+                    {% if item.availability_reason %}
+                      <br><span class="text-danger"><small>{{ item.availability_reason }}</small></span>
+                    {% endif %}
+                  </small>
+                </div>
+              {% endwith %}
+            {% endfor %}
+            
+            {% if user_branch|is_assembly_available:assembly %}
+              <div class="alert alert-success mt-3">
+                <i class="fas fa-check-circle"></i> All components are available in {{ user_branch.name }}
+              </div>
+            {% else %}
+              <div class="alert alert-danger mt-3">
+                <i class="fas fa-exclamation-triangle"></i> Some components are not available in {{ user_branch.name }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
+

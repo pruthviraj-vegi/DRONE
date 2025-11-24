@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-md-10">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title h4 mb-0">{{ title }}</h2>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-4">
+              <small>* indicates required fields</small>
+            </p>
+            <form method="post" id="assemblyForm">
+              {% csrf_token %}
+              {% if form.errors or formset.errors %}
+                <div class="alert alert-danger">
+                  <h5 class="alert-heading">Please correct the following errors:</h5>
+                  {{ form.non_field_errors }}
+                  {{ formset.non_form_errors }}
+                </div>
+              {% endif %}
+              <!-- Assembly Basic Information -->
+              <div class="card mb-4">
+                <div class="card-header bg-light">
+                  <h5 class="mb-0">Assembly Information</h5>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    {% for field in form %}
+                      <div class="col-md-6 mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">
+                          {{ field.label }}
+                          {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors }}</div>{% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              <!-- Assembly Components -->
+              <div class="card mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">Assembly Components</h5>
+                  <small class="text-muted">Add inventory items that make up this assembly</small>
+                </div>
+                <div class="card-body">
+                  {{ formset.management_form }}
+                  <div id="formset-container">
+                    {% for component_form in formset %}
+                      <div class="component-form-row border rounded p-3 mb-3"
+                           data-form-index="{{ forloop.counter0 }}">
+                        {% if component_form.DELETE %}
+                          <div class="form-check mb-2">
+                            {{ component_form.DELETE }}
+                            <label class="form-check-label text-danger"
+                                   for="{{ component_form.DELETE.id_for_label }}">Delete this component</label>
+                          </div>
+                        {% endif %}
+                        {{ component_form.id }}
+                        <div class="row">
+                          <div class="col-md-4 mb-3">
+                            <label for="{{ component_form.inventory_item.id_for_label }}"
+                                   class="form-label">
+                              Inventory Item <span class="text-danger">*</span>
+                            </label>
+                            {{ component_form.inventory_item }}
+                            {% if component_form.inventory_item.errors %}
+                              <div class="invalid-feedback d-block">{{ component_form.inventory_item.errors }}</div>
+                            {% endif %}
+                          </div>
+                          <div class="col-md-2 mb-3">
+                            <label for="{{ component_form.quantity_required.id_for_label }}"
+                                   class="form-label">
+                              Quantity <span class="text-danger">*</span>
+                            </label>
+                            {{ component_form.quantity_required }}
+                            {% if component_form.quantity_required.errors %}
+                              <div class="invalid-feedback d-block">{{ component_form.quantity_required.errors }}</div>
+                            {% endif %}
+                          </div>
+                          <div class="col-md-3 mb-3">
+                            <label for="{{ component_form.selling_price.id_for_label }}"
+                                   class="form-label">Selling Price</label>
+                            {{ component_form.selling_price }}
+                            {% if component_form.selling_price.help_text %}
+                              <div class="form-text">{{ component_form.selling_price.help_text }}</div>
+                            {% endif %}
+                            {% if component_form.selling_price.errors %}
+                              <div class="invalid-feedback d-block">{{ component_form.selling_price.errors }}</div>
+                            {% endif %}
+                          </div>
+                          <div class="col-md-3 mb-3">
+                            <label for="{{ component_form.notes.id_for_label }}" class="form-label">Notes</label>
+                            {{ component_form.notes }}
+                            {% if component_form.notes.errors %}
+                              <div class="invalid-feedback d-block">{{ component_form.notes.errors }}</div>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm"
+                          id="add-component">
+                    <i class="fas fa-plus"></i> Add Another Component
+                  </button>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                  <button type="submit" name="action" value="save" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Assembly
+                  </button>
+                </div>
+                <a href="{% url 'inventory:assembly_list' %}" class="btn btn-secondary">
+                  <i class="fas fa-arrow-left"></i> Cancel
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block extra_js %}
+  <script>
+    $(function () {
+      // Auto-focus on name field when form loads
+      $('#id_name').focus()
+
+      // Handle form submission
+      $('#assemblyForm').on('submit', function (e) {
+        var action = $('button[type="submit"]:focus').val()
+        if (action === 'save_and_add') {
+          $('<input>')
+            .attr({
+              type: 'hidden',
+              name: 'save_and_add',
+              value: 'true'
+            })
+            .appendTo($(this))
+        }
+      })
+
+      // Add new component form
+      $('#add-component').on('click', function () {
+        var totalForms = $('#id_components-TOTAL_FORMS')
+        var formCount = parseInt(totalForms.val())
+        var formIndex = formCount
+        var templateForm = $('.component-form-row').first()
+        var newForm = templateForm.clone(true)
+        
+        // Update form indices
+        newForm.find(':input').each(function () {
+          var name = $(this).attr('name')
+          if (name) {
+            name = name.replace(/-\d+-/, '-' + formIndex + '-')
+            $(this).attr('name', name)
+          }
+          var id = $(this).attr('id')
+          if (id) {
+            id = id.replace(/-\d+-/, '-' + formIndex + '-')
+            $(this).attr('id', id)
+          }
+        })
+        
+        // Update labels
+        newForm.find('label').each(function () {
+          var forAttr = $(this).attr('for')
+          if (forAttr) {
+            forAttr = forAttr.replace(/-\d+-/, '-' + formIndex + '-')
+            $(this).attr('for', forAttr)
+          }
+        })
+        
+        // Clear values
+        newForm.find('input[type="text"], input[type="number"], textarea').val('')
+        newForm.find('select').val('')
+        newForm.find('input[type="checkbox"]').prop('checked', false)
+        newForm.find('input[type="hidden"]').val('') // Clear hidden ID field
+        newForm.find('.form-check').hide() // Hide delete checkbox for new forms
+        
+        // Update data attribute
+        newForm.attr('data-form-index', formIndex)
+        
+        // Append to container
+        $('#formset-container').append(newForm)
+        totalForms.val(formCount + 1)
+        
+        // Re-initialize select2 or other plugins if needed
+        newForm.find('select').addClass('form-select')
+      })
+
+      // Handle delete checkbox
+      $('input[type="checkbox"][name*="-DELETE"]').on('change', function () {
+        if ($(this).is(':checked')) {
+          $(this).closest('.component-form-row').addClass('bg-light opacity-50')
+        } else {
+          $(this).closest('.component-form-row').removeClass('bg-light opacity-50')
+        }
+      })
+
+      // Keyboard shortcuts
+      $(document).keydown(function (e) {
+        // Ctrl+Enter to save and add another
+        if (e.ctrlKey && e.keyCode === 13) {
+          e.preventDefault()
+          $('button[name="save_and_add"]').click()
+        }
+        // Ctrl+S to save
+        if (e.ctrlKey && e.keyCode === 83) {
+          e.preventDefault()
+          $('button[value="save"]').click()
+        }
+      })
+    })
+  </script>
+{% endblock extra_js %}

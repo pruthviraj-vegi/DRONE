@@ -37,6 +37,7 @@ class Invoice(models.Model):
     )
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     advance_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     branch = models.ForeignKey(
         Branch, on_delete=models.CASCADE, related_name="branch_invoices"
@@ -50,6 +51,10 @@ class Invoice(models.Model):
     @property
     def balance(self):
         return self.total_amount - self.advance_amount
+
+    @property
+    def dueAmount(self):
+        return self.balance - self.discount_amount
 
     @property
     def totalQty(self):

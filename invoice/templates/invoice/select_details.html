@@ -40,9 +40,127 @@
                 <button type="submit" class="btn btn-primary">Create Invoice</button>
               </div>
             </form>
+            
+            <!-- Amount Details Section -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <h5 class="card-title h6 mb-0">Amount Details</h5>
+              </div>
+              <div class="card-body p-0">
+                <table class="table table-bordered mb-0">
+                  <tbody>
+                    <tr>
+                      <td class="fw-bold">Total Amount</td>
+                      <td class="text-end" id="display-total-amount">₹0.00</td>
+                    </tr>
+                    <tr>
+                      <td class="fw-bold">Discount Amount</td>
+                      <td class="text-end text-danger" id="display-discount-amount">-₹0.00</td>
+                    </tr>
+                    <tr>
+                      <td class="fw-bold">Advance Amount</td>
+                      <td class="text-end text-info" id="display-advance-amount">₹0.00</td>
+                    </tr>
+                    <tr class="table-primary">
+                      <td class="fw-bold fs-5">Balance Amount</td>
+                      <td class="text-end fw-bold fs-5 text-primary" id="display-balance-amount">₹0.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <script>
+              document.addEventListener('DOMContentLoaded', function() {
+                const invoiceTypeField = document.getElementById('id_invoice_type');
+                const discountAmountField = document.getElementById('id_discount_amount');
+                const totalAmountField = document.getElementById('id_total_amount');
+                const advanceAmountField = document.getElementById('id_advance_amount');
+                
+                // Display elements
+                const displayTotalAmount = document.getElementById('display-total-amount');
+                const displayDiscountAmount = document.getElementById('display-discount-amount');
+                const displayAdvanceAmount = document.getElementById('display-advance-amount');
+                const displayBalanceAmount = document.getElementById('display-balance-amount');
+                
+                // Format number to currency
+                function formatCurrency(value) {
+                  const num = parseFloat(value) || 0;
+                  return '₹' + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                }
+                
+                // Calculate and update amount details
+                function updateAmountDetails() {
+                  const totalAmount = parseFloat(totalAmountField?.value) || 0;
+                  const discountAmount = parseFloat(discountAmountField?.value) || 0;
+                  const advanceAmount = parseFloat(advanceAmountField?.value) || 0;
+                  
+                  // Calculate balance (Total - Discount - Advance)
+                  const balanceAmount = totalAmount - discountAmount - advanceAmount;
+                  
+                  // Update display
+                  if (displayTotalAmount) {
+                    displayTotalAmount.textContent = formatCurrency(totalAmount);
+                  }
+                  if (displayDiscountAmount) {
+                    displayDiscountAmount.textContent = '-' + formatCurrency(discountAmount);
+                  }
+                  if (displayAdvanceAmount) {
+                    displayAdvanceAmount.textContent = formatCurrency(advanceAmount);
+                  }
+                  if (displayBalanceAmount) {
+                    displayBalanceAmount.textContent = formatCurrency(balanceAmount);
+                  }
+                }
+                
+                function handleInvoiceTypeChange() {
+                  if (invoiceTypeField && advanceAmountField) {
+                    const invoiceType = invoiceTypeField.value;
+                    
+                    // Check if invoice_type is True (Cash) - can be "True", "1", or true
+                    if (invoiceType === 'True' || invoiceType === '1' || invoiceType === true) {
+                      advanceAmountField.readOnly = true;
+                      advanceAmountField.value = '0';
+                      advanceAmountField.style.backgroundColor = '#e9ecef';
+                      advanceAmountField.style.cursor = 'not-allowed';
+                    } else {
+                      advanceAmountField.readOnly = false;
+                      advanceAmountField.style.backgroundColor = '';
+                      advanceAmountField.style.cursor = '';
+                    }
+                  }
+                  updateAmountDetails();
+                }
+                
+                // Handle initial state
+                handleInvoiceTypeChange();
+                
+                // Handle changes
+                if (invoiceTypeField) {
+                  invoiceTypeField.addEventListener('change', handleInvoiceTypeChange);
+                }
+                
+                // Update amount details when amount fields change
+                if (totalAmountField) {
+                  totalAmountField.addEventListener('input', updateAmountDetails);
+                  totalAmountField.addEventListener('change', updateAmountDetails);
+                }
+                if (discountAmountField) {
+                  discountAmountField.addEventListener('input', updateAmountDetails);
+                  discountAmountField.addEventListener('change', updateAmountDetails);
+                }
+                if (advanceAmountField) {
+                  advanceAmountField.addEventListener('input', updateAmountDetails);
+                  advanceAmountField.addEventListener('change', updateAmountDetails);
+                }
+                
+                // Initial update
+                updateAmountDetails();
+              });
+            </script>
           </div>
         </div>
       </div>
     </div>
   </div>
-{% endblock %}
+{% endblock content %}

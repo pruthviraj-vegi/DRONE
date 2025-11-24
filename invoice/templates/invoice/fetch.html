@@ -12,7 +12,7 @@
     </td>
     <td>{{ invoice.created_at|date:'d M, Y' }}</td>
     <td>{{ invoice.sale_user.full_name }}</td>
-    <td class="text-end">{{ invoice.total_amount|currency_format }}</td>
+    <td class="text-end">{{ invoice.dueAmount|currency_format }}</td>
     <td class="text-center">
       <a href="{% url 'invoice:invoice_detail' invoice.id %}" class="btn btn-sm btn-outline-primary" title="View Details"><i class="fas fa-eye"></i></a>
     </td>

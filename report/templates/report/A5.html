@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ details.customer.name }} - Invoice {{ details.invoice_number }}</title>
+    <link rel="stylesheet" href="{% static 'styles/A5.css' %}" />
+    <link rel="shortcut icon"
+          type="image/ico"
+          href="{% static 'images/favicon.ico' %}" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="top-section">
+        <div class="header-data">
+          <!-- Left: Shop Details -->
+          <div class="shop-data">
+            <div class="shop-details">
+              <div class="shop-name">Wayaau Agri Drones</div>
+              <p class="shop-address">Main Road, Naryanapur,</p>
+              <p class="shop-address">Hunsagi,</p>
+              <p class="text-bold">29sap7224</p>
+              <p class="text-bold">+91 9845000000</p>
+            </div>
+          </div>
+          <!-- Middle: Logo -->
+          <div class="logo-section">
+            <div class="logo">
+              <img src="{% static 'images/logo.svg' %}" alt="Logo" />
+            </div>
+          </div>
+          <!-- Right: Invoice Details -->
+          <div class="invoice-data">
+            <div class="invoice-content">
+              <p>
+                Invoice No : <span class="invoice-value">#{{ details.branch.code }}-{{ details.id }}</span>
+              </p>
+              <p>
+                Date : <span class="invoice-value">{{ details.created_at|date:'d-m-Y' }}</span>
+              </p>
+              <p>
+                Mode : <span class="invoice-value">{{ details.get_invoice_type_display }}</span>
+              </p>
+              <p>
+                Sold By : <span class="invoice-value">{{ details.sale_user.full_name }}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+        <!-- Bottom: Customer Details -->
+        <div class="customer-section">
+          <div class="customer-content">
+            <h1>{{ details.customer.name }}</h1>
+            <p>{{ details.customer.address|truncatechars:20 }}</p>
+          </div>
+        </div>
+        <div class="content-table">
+          <div class="table-logo">
+            <img src="{% static 'images/logo.svg' %}" alt="Logo" />
+          </div>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>S.No</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>UOM</th>
+                <th>Rate</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in values %}
+                <tr>
+                  <td class="text-center">{{ forloop.counter }}</td>
+                  <td>
+                    <div class="font-semibold">{{ item.inventory.part_name|truncatechars:40 }}</div>
+                  </td>
+                  <td class="text-center">{{ item.quantity }}</td>
+                  <td class="text-center">{{ item.inventory.uom }}</td>
+                  <td class="text-right">{{ item.price|currency_format }}</td>
+                  <td class="text-right font-semibold">{{ item.amount|currency_format }}</td>
+                </tr>
+              {% endfor %}
+              <!-- Fill remaining space with empty rows for consistent printing -->
+              <tr class="empty-space">
+                <td colspan="6"></td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="2" class="font-semibold">Total</td>
+                <td class="text-center font-semibold">{{ details.totalQty }}</td>
+                <td colspan="2"></td>
+                <td class="text-right highlight font-bold">{{ details.totalAmount|currency_format }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="bottom-section">
+        <div class="calculation-content">
+          <div class="tax-content">
+            <table class="tax-table">
+              <thead>
+                <tr>
+                  <th>Tax %</th>
+                  <th>Tax Value</th>
+                  <th>Tax Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for gst, values in details.tax_values_by_gst.details.items %}
+                  <tr>
+                    <td class="text-center">{{ gst }}%</td>
+                    <td class="text-right">{{ values.tax_value| currency_format }}</td>
+                    <td class="text-right font-semibold">{{ values.total_tax_value|currency_format }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="amount-content">
+            <div class="terms_title">* Rupee In Words *</div>
+            <div class="font-semibold">{{ details.dueAmount|numberToWords }}</div>
+          </div>
+        </div>
+        <div class="total-amount-content">
+          <div>
+            <p>
+              <span class="text-gray-700">Total Amount:</span>
+              <span class="font-semibold">{{ details.totalAmount|currency_format }}</span>
+            </p>
+            {% comment %}Show return adjustment if there are returns{% endcomment %}
+            {% if details.discount_amount > 0 %}
+              <p>
+                <span class="text-gray-700">Discount:</span>
+                <span class="font-semibold text-gray-600">- {{ details.discount_amount|currency_format }}</span>
+              </p>
+            {% endif %}
+            {% if details.advance_amount > 0 %}
+              <p>
+                <span class="text-gray-700">Advance:</span>
+                <span class="font-semibold text-gray-600">- {{ details.advance_amount|currency_format }}</span>
+              </p>
+            {% endif %}
+          </div>
+          <hr>
+          <div>
+            <p class="highlight">
+              <span>Total:</span>
+              <span>{{ details.dueAmount|currency_format }}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-content">
+        <div class="terms-qrcode-content">
+          <div class="terms-content {% if not report_config.show_qr_code or not qrcode %}full-width{% endif %}">
+            <div class="terms-conditions">
+              <h3 class="terms_title">Terms &amp; Conditions</h3>
+              <div class="terms_subject">
+                <em>1. All subjects to local jurisdiction</em>
+                <em>2. Goods once sold will not be taken back</em>
+                <em>3. E. &amp; O.E</em>
+              </div>
+            </div>
+          </div>
+          {% if report_config.show_qr_code and qrcode %}
+            <div class="qrcode-content">
+              <div class="barcode">
+                <img src="data:image/png;base64,{{ qrcode }}" alt="QR Code" />
+              </div>
+            </div>
+          {% endif %}
+        </div>
+        <div class="footer-note-content">
+          <div class="thank-you">
+            <h3>{{ report_config.thank_you_message|default:"Thank You Please Visit Again" }}</h3>
+            <p>This is Computer Generated Invoice, Signature not Required</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          window.close()
+        }
+        if (event.key === 'Enter') {
+          window.print()
+        }
+      })
+      window.addEventListener('afterprint', function () {
+        window.close()
+      })
+  </script>
+</body>
+</html>

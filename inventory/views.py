@@ -3,10 +3,15 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, F, Count, Sum
 from django.http import JsonResponse
-from .models import Inventory, StockTransaction
-from Drone.decorators import admin_required
+from .models import Inventory, StockTransaction, ProductAssembly, AssemblyComponent
 from inventoryManage.models import BranchInventory
-from .forms import StockTransactionForm, InventoryCreateForm
+from Drone.decorators import admin_required
+from .forms import (
+    StockTransactionForm,
+    InventoryCreateForm,
+    ProductAssemblyForm,
+    AssemblyComponentFormSet,
+)
 from base.utility import get_basic_data
 from django.db import transaction
 import csv
@@ -496,6 +501,8 @@ def branch_inventory_fetch(request, branch_name=None):
     else:
         branch = getattr(request.user, "branch", None)
 
+    print("branch", branch)
+
     branch_inventory = BranchInventory.objects.select_related("inventory").filter(
         branch=branch
     )
@@ -504,3 +511,221 @@ def branch_inventory_fetch(request, branch_name=None):
         "inventory/branch_inventory_fetch.html",
         {"inventory": branch_inventory},
     )
+
+
+def assembly_list(request):
+    """List all product assemblies (shared across all branches)"""
+    # Show all assemblies to everyone - assemblies are shared
+    assemblies = ProductAssembly.objects.all().order_by("-created_at")
+
+    # Search functionality
+    search_query = request.GET.get("search", "")
+    if search_query:
+        assemblies = assemblies.filter(
+            Q(name__icontains=search_query)
+            | Q(sku__icontains=search_query)
+            | Q(barcode__icontains=search_query)
+        )
+
+    # Filter by active status
+    is_active_filter = request.GET.get("is_active", "")
+    if is_active_filter == "true":
+        assemblies = assemblies.filter(is_active=True)
+    elif is_active_filter == "false":
+        assemblies = assemblies.filter(is_active=False)
+
+    # Pagination
+    paginator = Paginator(assemblies, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "page_obj": page_obj,
+        "search_query": search_query,
+        "is_active_filter": is_active_filter,
+        "user_branch": request.user.branch,  # Pass user's branch for availability checks
+        "user_role": request.user.role,  # Pass user's role to determine availability check method
+    }
+    return render(request, "inventory/assembly_list.html", context)
+
+
+@admin_required
+def assembly_create(request):
+    """Create a new product assembly with components"""
+    if request.method == "POST":
+        form = ProductAssemblyForm(request.POST)
+        formset = AssemblyComponentFormSet(request.POST)
+
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                assembly = form.save(commit=False)
+                assembly.created_by = request.user
+                # Branch is optional - assemblies are shared across branches
+                assembly.save()
+
+                formset.instance = assembly
+                formset.save()
+
+                messages.success(
+                    request,
+                    f'Assembly "{assembly.name}" has been created successfully.',
+                )
+                return redirect("inventory:assembly_list")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = ProductAssemblyForm()
+        formset = AssemblyComponentFormSet()
+
+    # Filter inventory items by branch for the formset
+    for component_form in formset:
+        component_form.fields["inventory_item"].queryset = Inventory.objects.filter(
+            branch=request.user.branch, is_active=True
+        ).order_by("company_name", "part_name")
+
+    context = {
+        "title": "Create New Product Assembly",
+        "form": form,
+        "formset": formset,
+    }
+    return render(request, "inventory/assembly_form.html", context)
+
+
+@admin_required
+def assembly_edit(request, pk):
+    """Edit an existing product assembly (shared across all branches)"""
+    assembly = get_object_or_404(ProductAssembly, pk=pk)
+
+    if request.method == "POST":
+        form = ProductAssemblyForm(request.POST, instance=assembly)
+        formset = AssemblyComponentFormSet(request.POST, instance=assembly)
+
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                form.save()
+                formset.save()
+
+                save_and_add = request.POST.get("save_and_add") == "true"
+                if save_and_add:
+                    messages.success(
+                        request,
+                        f'Assembly "{assembly.name}" has been updated successfully. You can now add another assembly.',
+                    )
+                    return redirect("inventory:assembly_create")
+                else:
+                    messages.success(
+                        request,
+                        f'Assembly "{assembly.name}" has been updated successfully.',
+                    )
+                    return redirect("inventory:assembly_list")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = ProductAssemblyForm(instance=assembly)
+        formset = AssemblyComponentFormSet(instance=assembly)
+
+    # Filter inventory items by branch for the formset
+    for component_form in formset:
+        component_form.fields["inventory_item"].queryset = Inventory.objects.filter(
+            branch=request.user.branch, is_active=True
+        ).order_by("company_name", "part_name")
+
+    context = {
+        "title": f"Edit Assembly: {assembly.name}",
+        "form": form,
+        "formset": formset,
+        "assembly": assembly,
+    }
+    return render(request, "inventory/assembly_form.html", context)
+
+
+@admin_required
+def assembly_delete(request, pk):
+    """Delete a product assembly (shared across all branches)"""
+    assembly = get_object_or_404(ProductAssembly, pk=pk)
+
+    if request.method == "POST":
+        assembly_name = str(assembly)
+        assembly.delete()
+        messages.success(
+            request, f'Assembly "{assembly_name}" has been deleted successfully.'
+        )
+        return redirect("inventory:assembly_list")
+
+    context = {"assembly": assembly}
+    return render(request, "inventory/assembly_confirm_delete.html", context)
+
+
+def assembly_detail(request, pk):
+    """View details of a product assembly (shared across all branches)"""
+    assembly = get_object_or_404(ProductAssembly, pk=pk)
+    components = assembly.components.select_related("inventory_item").all()
+
+    # Calculate total price and component totals with branch-specific availability
+    total_price = 0
+    components_with_totals = []
+    user_branch = request.user.branch
+    
+    for component in components:
+        if component.selling_price > 0:
+            component_price = float(component.selling_price)
+        else:
+            component_price = float(component.inventory_item.discounted_price)
+
+        component_total = component_price * float(component.quantity_required)
+        total_price += component_total
+
+        # Get branch-specific availability
+        available_quantity = 0
+        is_available = False
+        availability_reason = ""
+        
+        if user_branch:
+            if request.user.role != "admin":
+                # For staff users, check BranchInventory
+                branch_inventory = BranchInventory.objects.filter(
+                    branch=user_branch,
+                    inventory=component.inventory_item
+                ).first()
+                
+                if branch_inventory:
+                    available_quantity = float(branch_inventory.actual_quantity)
+                    is_available = available_quantity >= float(component.quantity_required)
+                    if not is_available:
+                        availability_reason = "Insufficient stock in branch"
+                else:
+                    available_quantity = 0
+                    is_available = False
+                    availability_reason = "Item not in branch"
+            else:
+                # For admin users, check if inventory item is in the branch
+                if component.inventory_item.branch == user_branch:
+                    available_quantity = float(component.inventory_item.actual_quantity)
+                    is_available = available_quantity >= float(component.quantity_required)
+                    if not is_available:
+                        availability_reason = "Insufficient stock"
+                else:
+                    available_quantity = 0
+                    is_available = False
+                    availability_reason = "Item not in branch"
+
+        components_with_totals.append(
+            {
+                "component": component,
+                "component_price": component_price,
+                "component_total": component_total,
+                "available_quantity": available_quantity,
+                "is_available": is_available,
+                "availability_reason": availability_reason,
+            }
+        )
+
+    context = {
+        "assembly": assembly,
+        "components": components,
+        "components_with_totals": components_with_totals,
+        "total_price": total_price,
+        "user_branch": user_branch,  # Pass user's branch for availability checks
+        "user_role": request.user.role,  # Pass user's role to determine availability check method
+    }
+    return render(request, "inventory/assembly_detail.html", context)

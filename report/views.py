@@ -18,9 +18,11 @@ def get_print_count(quantity):
     return quantity // 2 if quantity % 2 == 0 else quantity // 2 + 1
 
 
+
+
 # create invoice page
 def createInvoice(request, pk):
-    template = "report/invoiceA5.html"
+    template = "report/A5.html"
 
     invoice = Invoice.objects.get(id=pk)
     values = InvoiceItem.objects.filter(invoice__id=pk)
