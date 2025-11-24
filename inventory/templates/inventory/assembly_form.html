@@ -1,5 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load widget_tweaks %}
+{% block extra_css %}
+  <!-- Select2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock extra_css %}
 {% block content %}
   <div class="container-fluid">
     <div class="row justify-content-center">
@@ -34,7 +40,11 @@
                           {{ field.label }}
                           {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
                         </label>
-                        {{ field }}
+                        {% if field.field.widget.input_type == 'select' or field.field.widget|stringformat:"s"|slice:":6" == "Select" %}
+                          {{ field|add_class:"form-select select2-field" }}
+                        {% else %}
+                          {{ field }}
+                        {% endif %}
                         {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
                         {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors }}</div>{% endif %}
                       </div>
@@ -54,13 +64,6 @@
                     {% for component_form in formset %}
                       <div class="component-form-row border rounded p-3 mb-3"
                            data-form-index="{{ forloop.counter0 }}">
-                        {% if component_form.DELETE %}
-                          <div class="form-check mb-2">
-                            {{ component_form.DELETE }}
-                            <label class="form-check-label text-danger"
-                                   for="{{ component_form.DELETE.id_for_label }}">Delete this component</label>
-                          </div>
-                        {% endif %}
                         {{ component_form.id }}
                         <div class="row">
                           <div class="col-md-4 mb-3">
@@ -68,7 +71,7 @@
                                    class="form-label">
                               Inventory Item <span class="text-danger">*</span>
                             </label>
-                            {{ component_form.inventory_item }}
+                            {{ component_form.inventory_item|add_class:"form-select select2-inventory-item" }}
                             {% if component_form.inventory_item.errors %}
                               <div class="invalid-feedback d-block">{{ component_form.inventory_item.errors }}</div>
                             {% endif %}
@@ -102,6 +105,13 @@
                             {% endif %}
                           </div>
                         </div>
+                        {% if component_form.DELETE %}
+                          <div class="form-check mt-3 pt-2 border-top">
+                            {{ component_form.DELETE }}
+                            <label class="form-check-label text-danger"
+                                   for="{{ component_form.DELETE.id_for_label }}">Delete this component</label>
+                          </div>
+                        {% endif %}
                       </div>
                     {% endfor %}
                   </div>
@@ -130,8 +140,34 @@
   </div>
 {% endblock %}
 {% block extra_js %}
+  <!-- Select2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script>
     $(function () {
+      // Initialize Select2 for all inventory item selects
+      function initSelect2() {
+        $('.select2-inventory-item').select2({
+          theme: 'bootstrap-5',
+          width: '100%',
+          placeholder: 'Select an inventory item',
+          allowClear: true
+        })
+        
+        // Initialize Select2 for any other select fields in the main form
+        $('.select2-field').each(function() {
+          if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({
+              theme: 'bootstrap-5',
+              width: '100%',
+              allowClear: true
+            })
+          }
+        })
+      }
+
+      // Initialize Select2 on page load
+      initSelect2()
+
       // Auto-focus on name field when form loads
       $('#id_name').focus()
 
@@ -155,6 +191,14 @@
         var formCount = parseInt(totalForms.val())
         var formIndex = formCount
         var templateForm = $('.component-form-row').first()
+        
+        // Destroy Select2 on template if it exists before cloning
+        templateForm.find('select.select2-inventory-item').each(function () {
+          if ($(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2('destroy')
+          }
+        })
+        
         var newForm = templateForm.clone(true)
         
         // Update form indices
@@ -185,7 +229,13 @@
         newForm.find('select').val('')
         newForm.find('input[type="checkbox"]').prop('checked', false)
         newForm.find('input[type="hidden"]').val('') // Clear hidden ID field
-        newForm.find('.form-check').hide() // Hide delete checkbox for new forms
+        
+        // Ensure delete checkbox is visible for new forms
+        var deleteCheckbox = newForm.find('input[type="checkbox"][name*="-DELETE"]')
+        if (deleteCheckbox.length > 0) {
+          newForm.find('.form-check').show()
+          deleteCheckbox.prop('checked', false)
+        }
         
         // Update data attribute
         newForm.attr('data-form-index', formIndex)
@@ -194,8 +244,35 @@
         $('#formset-container').append(newForm)
         totalForms.val(formCount + 1)
         
-        // Re-initialize select2 or other plugins if needed
-        newForm.find('select').addClass('form-select')
+        // Re-initialize Select2 for the new form's select field
+        newForm.find('select.select2-inventory-item').select2({
+          theme: 'bootstrap-5',
+          width: '100%',
+          placeholder: 'Select an inventory item',
+          allowClear: true
+        })
+        
+        // Re-initialize Select2 for any other select fields in the new form
+        newForm.find('select.select2-field').select2({
+          theme: 'bootstrap-5',
+          width: '100%',
+          allowClear: true
+        })
+        
+        // Re-initialize Select2 on the template form if it was destroyed
+        templateForm.find('select.select2-inventory-item').select2({
+          theme: 'bootstrap-5',
+          width: '100%',
+          placeholder: 'Select an inventory item',
+          allowClear: true
+        })
+        
+        // Re-initialize Select2 for any other select fields in the template form
+        templateForm.find('select.select2-field').select2({
+          theme: 'bootstrap-5',
+          width: '100%',
+          allowClear: true
+        })
       })
 
       // Handle delete checkbox
