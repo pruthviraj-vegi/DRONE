@@ -297,6 +297,99 @@ class ProductAssembly(models.Model):
         )
         return is_available
 
+    def get_max_assemblies_possible(self, branch=None, use_branch_inventory=False):
+        """
+        Calculate the maximum number of assemblies that can be made with current inventory.
+        Returns the minimum number based on all components' availability.
+        
+        Args:
+            branch: Branch to check inventory for (required for staff users)
+            use_branch_inventory: If True, check BranchInventory for staff users (default: False for admin)
+                                 If False, check Inventory.branch for admin users
+        
+        Returns:
+            dict with:
+                - max_assemblies: Maximum number of assemblies that can be made (int)
+                - limiting_component: The component that limits production (AssemblyComponent or None)
+                - component_details: List of dicts with details for each component
+        """
+        from inventoryManage.models import BranchInventory
+        from decimal import Decimal
+        
+        if not self.components.exists():
+            return {
+                'max_assemblies': 0,
+                'limiting_component': None,
+                'component_details': [],
+                'message': 'No components defined for this assembly'
+            }
+        
+        max_assemblies = None
+        limiting_component = None
+        component_details = []
+        
+        for component in self.components.all():
+            inventory_item = component.inventory_item
+            quantity_required = component.quantity_required
+            
+            # Get available quantity based on user type
+            if branch and use_branch_inventory:
+                # For staff users, check BranchInventory
+                branch_inventory = BranchInventory.objects.filter(
+                    branch=branch, inventory=inventory_item
+                ).first()
+                
+                if not branch_inventory:
+                    available_qty = Decimal('0')
+                    reason = 'Item not in branch'
+                else:
+                    available_qty = Decimal(str(branch_inventory.actual_quantity))
+                    reason = 'Available' if available_qty > 0 else 'Out of stock'
+            elif branch and inventory_item.branch != branch:
+                # For admin users, check if item is in the branch
+                available_qty = Decimal('0')
+                reason = 'Item not in branch'
+            else:
+                # For admin users, check inventory quantity
+                available_qty = Decimal(str(inventory_item.actual_quantity))
+                reason = 'Available' if available_qty > 0 else 'Out of stock'
+            
+            # Calculate how many assemblies can be made with this component
+            if quantity_required > 0:
+                assemblies_possible = int(available_qty / quantity_required)
+            else:
+                assemblies_possible = float('inf')  # If no quantity required, it's not limiting
+            
+            component_details.append({
+                'component': component,
+                'inventory_item': inventory_item,
+                'quantity_required': quantity_required,
+                'available_quantity': float(available_qty),
+                'assemblies_possible': assemblies_possible if assemblies_possible != float('inf') else 'unlimited',
+                'reason': reason,
+                'is_limiting': False  # Will be set later
+            })
+            
+            # Track the limiting component (lowest assemblies_possible)
+            if assemblies_possible != float('inf'):
+                if max_assemblies is None or assemblies_possible < max_assemblies:
+                    max_assemblies = assemblies_possible
+                    limiting_component = component
+        
+        # Mark the limiting component
+        if limiting_component:
+            for detail in component_details:
+                if detail['component'] == limiting_component:
+                    detail['is_limiting'] = True
+                    break
+        
+        return {
+            'max_assemblies': max_assemblies if max_assemblies is not None else 0,
+            'limiting_component': limiting_component,
+            'component_details': component_details,
+            'message': f'Can make {max_assemblies if max_assemblies is not None else 0} assembly(ies)' if max_assemblies is not None else 'Cannot make any assemblies'
+        }
+
 
 class AssemblyComponent(models.Model):
     """

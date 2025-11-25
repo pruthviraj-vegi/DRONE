@@ -134,6 +134,30 @@ def is_assembly_available(branch, assembly):
     return assembly.is_fully_available_for_branch(branch, use_branch_inventory=use_branch_inventory)
 
 
+@register.simple_tag
+def get_max_assemblies(assembly, branch, user_role):
+    """
+    Template tag to get maximum assemblies possible for an assembly.
+    Usage: {% get_max_assemblies assembly user_branch user_role as max_info %}
+    Returns a dict with max_assemblies, limiting_component, component_details, and message.
+    """
+    if not assembly or not branch:
+        return {
+            'max_assemblies': 0,
+            'limiting_component': None,
+            'component_details': [],
+            'message': 'No branch assigned'
+        }
+    
+    # Determine if we should use BranchInventory (for staff) or Inventory.branch (for admin)
+    use_branch_inventory = (user_role != 'admin')
+    
+    return assembly.get_max_assemblies_possible(
+        branch=branch,
+        use_branch_inventory=use_branch_inventory
+    )
+
+
 @register.filter(name="range")
 def range_filter(value):
     """Creates a range from 0 to value-1"""

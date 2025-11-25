@@ -47,6 +47,7 @@
                   <th>SKU</th>
                   <th>Components</th>
                   <th>Amount</th>
+                  <th>Max Assemblies</th>
                   <th>Status</th>
                   <th>Created</th>
                   <th>Actions</th>
@@ -66,6 +67,18 @@
                         <strong>{{ assembly.get_total_amount|currency_format }}</strong>
                       {% else %}
                         <strong class="text-danger">{{ assembly.get_total_amount|currency_format }}</strong>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if user_branch %}
+                        {% get_max_assemblies assembly user_branch user_role as max_info %}
+                        {% if max_info.max_assemblies > 0 %}
+                          <span class="badge bg-success" title="{{ max_info.message }}">{{ max_info.max_assemblies }}</span>
+                        {% else %}
+                          <span class="badge bg-danger" title="{{ max_info.message }}">0</span>
+                        {% endif %}
+                      {% else %}
+                        <span class="badge bg-secondary" title="No branch assigned">N/A</span>
                       {% endif %}
                     </td>
                     <td>
